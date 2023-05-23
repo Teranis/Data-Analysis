@@ -86,7 +86,7 @@ def run():
         ax.legend()
         fig.canvas.manager.set_window_title(exp_name + '_' + culturename)
         #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'), format = 'png', )
+        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'))
         #return plt
 
     plt.show()
