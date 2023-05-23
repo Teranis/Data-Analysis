@@ -8,7 +8,7 @@ import numpy as np
 
 import datetime
 
-excel_path = r'H:\Timon\notes\OD_measurement_16_5_23\OD_measurements_16_5_23.xlsx'
+excel_path = r'H:\Timon\notes\OD_measurement_16_5_23\'
 exp_name = "Hormone_16_5_23"
 no_timepoints = 6
 no_perculture = 4
@@ -86,7 +86,7 @@ def run():
         ax.legend()
         fig.canvas.manager.set_window_title(exp_name + '_' + culturename)
         #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'), format = 'png', )
+        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'))
         #return plt
 
     plt.show()
