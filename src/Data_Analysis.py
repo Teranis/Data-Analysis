@@ -25,7 +25,6 @@ def cut_data(data):
 
 def norm_data(data):
     ##normalizing data
-    data = data.iloc[1:, 2:]
     norm = []
     for i in range(total_pos):
         norm.append(1 / data.iloc[i, 0])
@@ -66,29 +65,28 @@ def metadata_legend(data_metadata):
     return legend
 
 def run():
-    print('Dummy run')
 
-data = import_data(excel_path)
+    data = import_data(excel_path)
+    print(data)
+    times = metadata_time(data)
+    names = metadata_names(data)
+    legend = metadata_legend(data)
+    data = cut_data(data)
+    data = norm_data(data)
 
-times = metadata_time(data)
-names = metadata_names(data)
-legend = metadata_legend(data)
-data = cut_data(data)
-data = norm_data(data)
+    ##creates the figs
+    for i, culturename in enumerate(names):
+        fig, ax = plt.subplots()
+        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
+            ax.plot(times, data.iloc[j], marker='o', label=legend[j])
+        ax.set_title(culturename)
+        ax.set_xlabel('Time (h)')
+        ax.set_ylabel('Normalized Optical Density')
+        ax.set_yscale('log')
+        ax.legend()
+        fig.canvas.manager.set_window_title(exp_name + '_' + culturename)
+        #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
+        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'), format = 'png', )
+        #return plt
 
-##creates the figs
-for i, culturename in enumerate(names):
-    fig, ax = plt.subplots()
-    for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-        ax.plot(times, data.iloc[j], marker='o', label=legend[j])
-    ax.set_title(culturename)
-    ax.set_xlabel('Time (h)')
-    ax.set_ylabel('Normalized Optical Density')
-    ax.set_yscale('log')
-    ax.legend()
-    fig.canvas.manager.set_window_title(exp_name + '_' + culturename)
-    #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-    plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'), format = 'png', )
-    #return plt
-
-plt.show()
+    plt.show()
