@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Data Analysis", "Data Analysis\Data Analysis.pyproj", "{2C79CCE3-A895-49C9-88E2-4A81D0284365}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Data_Analysis", "src\Data_Analysis.pyproj", "{2C79CCE3-A895-49C9-88E2-4A81D0284365}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
