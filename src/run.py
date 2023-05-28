@@ -1,14 +1,12 @@
 import Data_Analysis
 print('Running Data Analysis')
-
-Data_Analysis.coulterocunter_together_cum()
+    
+Data_Analysis.coulterocunter()
 
 ####Possible commands
 ##CC
 #Data_Analysis.coultercounter()
-#Data_Analysis.coulterocunter_culm()
 #Data_Analysis.coulterocunter_together()
-#Data_Analysis.coulterocunter_together_cum()
 ##OD
 #Data_Analysis.odnormplot()
 #Data_Analysis.doublingtime()

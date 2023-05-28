@@ -1,3 +1,4 @@
+from math import e
 import os
 
 import pandas as pd
@@ -10,28 +11,57 @@ import datetime
 
 import regex as re
 
+import json
+
 #Organization (use search with the appropriate number of # followed by a space)
-##### Configs
+##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
 ### Subsections: OD, CC
 ## Single functions
 
 
-##### For OD measurements
-excel_path = r'E:\Timon\notes\OD_measurements_26_05_23\OD_measurements_26_5_23.xlsx'
-exp_name = "Hormone_26_5_23"
-no_timepoints = 6
-no_perculture = 5
-no_cultures = 3
-total_pos = no_cultures * no_perculture
 
-##### For Coulter Counter measurements
-CC_path = r'E:\Timon\notes\2023_05_26_ASY071_ASY073_ASY075'
-CC_exp_name = "Hormone_26_5_23"
-culture_names = ['ASY071', 'ASY073', 'ASY075']
-custom_order = ['0nM', '2.5nM', '5nM', '10nM', '15nM']
+
+
 
 #### Functions
+### ConfigLoad
+def importconfigCC():
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    config_file_path = os.path.join(parent_dir, 'configCC.json')
+    with open(config_file_path, 'r') as input_file:
+        config_raw = input_file.read()
+    config_raw = config_raw.replace('\\','/')
+    config = json.loads(config_raw)
+    CC_path = config['CC_path']
+    CC_exp_name = config['CC_exp_name']
+    culture_names = config['CC_culture_names']
+    custom_order = config['CC_custom_order']
+    CC_norm_data = config['CC_norm_data']
+    CC_culm = config['CC_culm']
+    return CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm
+
+def importconfigOD():
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    config_file_path = os.path.join(parent_dir, 'configOD.json')
+    with open(config_file_path, 'r') as input_file:
+        config_raw = input_file.read()
+    config_raw = config_raw.replace('\\','/')
+    config = json.loads(config_raw)
+    excel_folder_path = config['OD_excel_path']
+    exp_name = config['OD_exp_name']
+    no_timepoints = config['OD_no_timepoints']
+    no_perculture = config['OD_no_perculture']
+    no_cultures = config['OD_no_cultures']
+    total_pos = no_cultures * no_perculture
+    OD_norm_data = config['OD_norm_data']
+    for file_name in os.listdir(excel_folder_path):
+        if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
+            excel_path = os.path.join(excel_folder_path, file_name)
+    print(excel_path)
+    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data
+
+
 ### CC
 def import_data_CC(path):
     ## imports data from a single file
@@ -81,20 +111,14 @@ def import_all_data_CC(path):
     #print(data)
     return data
 
-def plot_CC(entry):
-    ## plots CC data
-    fig, ax = plt.subplots()
-    ax.plot(entry[1], entry[2], marker='x', markersize=4)
-    name = entry[0].rstrip(".=#Z2")
-    ax.set_title(name)
-    ax.set_xlabel('Volume (uL)')
-    ax.set_ylabel('Number of cells')
-    fig.canvas.manager.set_window_title(CC_exp_name + '_' + name)
-    save_path = os.path.join(CC_path, CC_exp_name) + '_' + name + '.png'
-    plt.savefig(save_path)
-    print('Saved plot to ' + save_path)
-    return
-
+def norm_data_cc(data, CC_norm_data):
+    if CC_norm_data:
+        for entry in data:
+            total = sum(entry[2])
+            for i, number in enumerate(entry[2]):
+                entry[2][i] = number / total
+    return data
+                
 def edit_label_CC(label, culture_name):
     ## edits CC label
     label = label.rstrip("_") #idk if this is necessary always, maybe I just did some mistakes when saving my og data set
@@ -102,7 +126,7 @@ def edit_label_CC(label, culture_name):
     label = label.replace('_', '.')
     return label
 
-def sort_labels_CC(ax):
+def sort_labels_CC(ax, custom_order):
     ## sorts out CC labels
     if custom_order != []:
         handles, labels = plt.gca().get_legend_handles_labels()
@@ -110,7 +134,24 @@ def sort_labels_CC(ax):
         ax.legend([handles[idx] for idx in sort_list],[labels[idx] for idx in sort_list])
     return ax
 
-def plot_together_CC(data):
+def plot_CC(entry, CC_exp_name, CC_path, CC_norm_data):
+    ## plots CC data
+    fig, ax = plt.subplots()
+    ax.plot(entry[1], entry[2], marker='x', markersize=4)
+    name = entry[0].rstrip(".=#Z2")
+    ax.set_title(name)
+    ax.set_xlabel('Volume (uL)')
+    if CC_norm_data == True:
+        ax.set_ylabel('Fraction of cells')
+    else:
+        ax.set_ylabel('Number of cells')
+    fig.canvas.manager.set_window_title(CC_exp_name + '_' + name)
+    save_path = os.path.join(CC_path, CC_exp_name) + '_' + name + '.png'
+    plt.savefig(save_path)
+    print('Saved plot to ' + save_path)
+    return 
+
+def plot_together_CC(data, culture_names, CC_norm_data, custom_order, CC_exp_name, CC_path):
     ## plots CC data together
     for entry in data:
         entry[0] = entry[0].rstrip(".=#Z2")
@@ -123,9 +164,12 @@ def plot_together_CC(data):
         
         ax.set_title(culture_name)
         ax.set_xlabel('Volume (uL)')
-        ax.set_ylabel('Number of cells')
+        if CC_norm_data == True:
+            ax.set_ylabel('Fraction of cells')
+        else:
+            ax.set_ylabel('Number of cells')
         ax.legend()
-        ax = sort_labels_CC(ax)
+        ax = sort_labels_CC(ax, custom_order)
         fig.canvas.manager.set_window_title(CC_exp_name + '_' + culture_name)
         save_path = os.path.join(CC_path, CC_exp_name) + '_' + culture_name + '.png'
         plt.savefig(save_path)
@@ -142,7 +186,7 @@ def cut_data(data):
     data = data.iloc[1:, 2:]
     return data
 
-def norm_data(data):
+def norm_data(data, total_pos, no_timepoints):
     ## normalizing data
     norm = []
     for i in range(total_pos):
@@ -154,7 +198,7 @@ def norm_data(data):
     print(data)
     return data
 
-def metadata_time(data_metadata):
+def metadata_time(data_metadata, no_timepoints):
     ## Calculating time diffs
     times = [0]
     for i in range(2, no_timepoints + 1):
@@ -167,7 +211,7 @@ def metadata_time(data_metadata):
     #print(times)
     return times
 
-def metadata_names(data_metadata):
+def metadata_names(data_metadata, total_pos, no_perculture):
     ## getting culture names
     names = []
     for i in range(0, total_pos, no_perculture):
@@ -175,7 +219,7 @@ def metadata_names(data_metadata):
     #print(names)
     return names
 
-def metadata_legend(data_metadata):
+def metadata_legend(data_metadata, total_pos):
     ## getting legend
     legend = []
     for i in range(1, total_pos+1):
@@ -191,15 +235,17 @@ def test():
     for entry in data:
         print(entry[0].rstrip(".=#Z2"))
 ### OD
-def odnormplot():
+def odplot():
     ## creates plots for each culture with normalized OD
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
-    times = metadata_time(data)
-    names = metadata_names(data)
-    legend = metadata_legend(data)
+    times = metadata_time(data, no_timepoints)
+    names = metadata_names(data, total_pos, no_perculture)
+    legend = metadata_legend(data, total_pos)
     data = cut_data(data)
-    data = norm_data(data)
+    if OD_norm_data == True:
+        data = norm_data(data, total_pos, no_timepoints)
 
     # creates the figs
     for i, culturename in enumerate(names):
@@ -219,11 +265,12 @@ def odnormplot():
 
 def doublingtime():
     ## calculates doubling time for each culture
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
-    times = metadata_time(data)
-    names = metadata_names(data)
-    legend = metadata_legend(data)
+    times = metadata_time(data, no_timepoints)
+    names = metadata_names(data, total_pos, no_perculture)
+    legend = metadata_legend(data, total_pos)
     data = cut_data(data)
 
     results = []
@@ -242,34 +289,27 @@ def doublingtime():
 
 
 ### CC
-def coultercounter():
-    ## creates CC plots for each exp separately
-    data = import_all_data_CC(CC_path)
-    for entry in data:
-        plt = plot_CC(entry)
-    plt.show()
 
-def coulterocunter_culm():
+def coulterocunter():
     ## creates CC plots for each exp separately cumulatively
+    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm = importconfigCC()
     data = import_all_data_CC(CC_path)
+    data = norm_data_cc(data, CC_norm_data)
     for entry in data:
-        for i, _ in enumerate(entry[2][1:], start=1):
-            entry[2][i] = entry[2][i] + entry[2][i-1]
-        plt = plot_CC(entry)
+        if CC_culm == True:
+            for i, _ in enumerate(entry[2][1:], start=1):
+                entry[2][i] = entry[2][i] + entry[2][i-1]
+        plot_CC(entry, CC_exp_name, CC_path, CC_norm_data)
     plt.show()
 
 def coulterocunter_together():
-    ## creates CC plots for cultures together
-    data = import_all_data_CC(CC_path)
-    plot_together_CC(data)
-    plt.show()
-
-def coulterocunter_together_cum():
     ## creates CC plots for cultures together cumulatively
+    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm = importconfigCC()
     data = import_all_data_CC(CC_path)
-    for entry in data:
-        for i, _ in enumerate(entry[2][1:], start=1):
-            entry[2][i] = entry[2][i] + entry[2][i-1]
-    
-    plot_together_CC(data)
+    data = norm_data_cc(data, CC_norm_data)
+    if CC_culm == True:
+        for entry in data:
+            for i, _ in enumerate(entry[2][1:], start=1):
+                entry[2][i] = entry[2][i] + entry[2][i-1]
+    plot_together_CC(data, culture_names, CC_norm_data, custom_order, CC_exp_name, CC_path)
     plt.show()
