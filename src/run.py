@@ -1,7 +1,7 @@
 import Data_Analysis
 print('Running Data Analysis')
     
-Data_Analysis.coulterocunter()
+Data_Analysis.coulterocunter_together()
 
 ####Possible commands
 ##CC
