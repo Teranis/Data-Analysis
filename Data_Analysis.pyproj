@@ -10,7 +10,7 @@
     <OutputPath>.</OutputPath>
     <Name>Data Analysis</Name>
     <RootNamespace>Data_Analysis</RootNamespace>
-    <InterpreterId>Global|VisualStudio|main</InterpreterId>
+    <InterpreterId>MSBuild|main|$(MSBuildProjectFullPath)</InterpreterId>
     <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -21,10 +21,6 @@
     <DebugSymbols>true</DebugSymbols>
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
-  <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
-    <InterpreterReference Include="Global|VisualStudio|main" />
-  </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
   </ItemGroup>
@@ -43,17 +39,6 @@
     <Content Include="UpgradeLog.htm" />
   </ItemGroup>
   <ItemGroup>
-    <Interpreter Include="..\..\..\..\venvs\main\">
-      <Id>main</Id>
-      <Version>3.11</Version>
-      <Description>main (Python 3.11 (64-bit))</Description>
-      <InterpreterPath>Scripts\python.exe</InterpreterPath>
-      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
-      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
-      <Architecture>X64</Architecture>
-    </Interpreter>
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="src\" />
     <Folder Include="src\__pycache__\" />
   </ItemGroup>
@@ -62,6 +47,17 @@
     <Compile Include="src\run.py" />
     <Compile Include="src\_version.py" />
     <Compile Include="src\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="..\..\..\venvs\main\">
+      <Id>main</Id>
+      <Version>3.11</Version>
+      <Description>main (Python 3.11 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
