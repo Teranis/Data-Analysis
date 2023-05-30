@@ -4,9 +4,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2c79cce3-a895-49c9-88e2-4a81d0284365</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Data_Analysis.py</StartupFile>
-    <SearchPath>
-    </SearchPath>
+    <StartupFile>run.py</StartupFile>
+    <SearchPath>..\..\my_stuff</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Data Analysis</Name>
@@ -24,12 +23,32 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Data_Analysis.py" />
+    <Compile Include="run.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
   </ItemGroup>
   <ItemGroup>
+    <Interpreter Include="..\..\..\..\venvs\main\">
+      <Id>main</Id>
+      <Version>3.11</Version>
+      <Description>main (Python 3.11 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="configCC.json" />
+    <Content Include="configOD.json" />
+    <Content Include="OD_measurements_example.xlsx" />
+    <Content Include="README.md" />
     <Content Include="requirements.txt" />
+    <Content Include="setup.cfg" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="..\..\..\..\venvs\main\">
