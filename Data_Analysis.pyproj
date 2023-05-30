@@ -4,13 +4,13 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2c79cce3-a895-49c9-88e2-4a81d0284365</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>run.py</StartupFile>
+    <StartupFile>src\run.py</StartupFile>
     <SearchPath>..\..\my_stuff</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Data Analysis</Name>
-    <RootNamespace>Data Analysis</RootNamespace>
-    <InterpreterId>MSBuild|main|$(MSBuildProjectFullPath)</InterpreterId>
+    <RootNamespace>Data_Analysis</RootNamespace>
+    <InterpreterId>Global|VisualStudio|main</InterpreterId>
     <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -22,33 +22,25 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Data_Analysis.py" />
-    <Compile Include="run.py" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
+    <InterpreterReference Include="Global|VisualStudio|main" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
   </ItemGroup>
   <ItemGroup>
-    <Interpreter Include="..\..\..\..\venvs\main\">
-      <Id>main</Id>
-      <Version>3.11</Version>
-      <Description>main (Python 3.11 (64-bit))</Description>
-      <InterpreterPath>Scripts\python.exe</InterpreterPath>
-      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
-      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
-      <Architecture>X64</Architecture>
-    </Interpreter>
-  </ItemGroup>
-  <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
-  </ItemGroup>
-  <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="configCC.json" />
     <Content Include="configOD.json" />
+    <Content Include="LICENSE" />
     <Content Include="OD_measurements_example.xlsx" />
+    <Content Include="pyproject.toml" />
     <Content Include="README.md" />
-    <Content Include="requirements.txt" />
     <Content Include="setup.cfg" />
+    <Content Include="src\.gitignore" />
+    <Content Include="src\__pycache__\Data_Analysis.cpython-39.pyc" />
+    <Content Include="src\__pycache__\__init__.cpython-39.pyc" />
+    <Content Include="UpgradeLog.htm" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="..\..\..\..\venvs\main\">
@@ -60,6 +52,16 @@
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
       <Architecture>X64</Architecture>
     </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\" />
+    <Folder Include="src\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="src\Data_Analysis.py" />
+    <Compile Include="src\run.py" />
+    <Compile Include="src\_version.py" />
+    <Compile Include="src\__init__.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

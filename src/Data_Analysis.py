@@ -13,6 +13,10 @@ import regex as re
 
 import json
 
+import math
+
+from scipy.optimize import curve_fit
+
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -55,11 +59,12 @@ def importconfigOD():
     no_cultures = config['OD_no_cultures']
     total_pos = no_cultures * no_perculture
     OD_norm_data = config['OD_norm_data']
+    use_fit = config['OD_use_fit']
     for file_name in os.listdir(excel_folder_path):
         if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
             excel_path = os.path.join(excel_folder_path, file_name)
     print(excel_path)
-    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data
+    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit
 
 
 ### CC
@@ -99,6 +104,8 @@ def import_data_CC(path):
     for i, number in enumerate(numbers):
         numbers[i] = int(number)
     #print(vols, numbers)
+    for i, vol in enumerate(vols):
+        vols[i] = (math.sqrt(vol)**3)*4/3
     return vols, numbers
 
 def import_all_data_CC(path):
@@ -227,17 +234,30 @@ def metadata_legend(data_metadata, total_pos):
     #print(legend)
     return legend
 
+def fit_curve(time, start_OD, D):
+    ## fitting the data
+    OD = start_OD*np.exp(time*D)
+    return OD
 
+def fitting(fit_curve, OD, time, start_OD):
+## fitting the data
+    D, cov_ma = curve_fit(fit_curve, time, OD)
+    return D
+
+def makingexcl(results, excel_path, exp_name):
+        results = pd.DataFrame(results)
+        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
+        results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx', index=False)
 
 #### Main functions
-def test():
-    data = import_all_data_CC(CC_path)
-    for entry in data:
-        print(entry[0].rstrip(".=#Z2"))
+#def test():
+#    data = import_all_data_CC(CC_path)
+#    for entry in data:
+#        print(entry[0].rstrip(".=#Z2"))
 ### OD
 def odplot():
     ## creates plots for each culture with normalized OD
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data = importconfigOD()
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
     times = metadata_time(data, no_timepoints)
@@ -265,27 +285,38 @@ def odplot():
 
 def doublingtime():
     ## calculates doubling time for each culture
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data = importconfigOD()
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
     times = metadata_time(data, no_timepoints)
     names = metadata_names(data, total_pos, no_perculture)
     legend = metadata_legend(data, total_pos)
     data = cut_data(data)
+    print(data)
+    if use_fit != True:
+        results = []
+        for i, culturename in enumerate(names):
+            for j in range(i*no_perculture, (i+1)*no_perculture, 1):
+                doubling_times = []
+                for k in range(1, no_timepoints):
+                    if data.iloc[j, k] > data.iloc[j, k-1]:
+                        doubling_times.append((np.log(2) * (times[k] - times[k-1]))/ np.log(data.iloc[j, k] / data.iloc[j, k-1]))
+                average = sum(doubling_times) / len(doubling_times)
+                print(culturename, legend[j], average)
+                results.append([culturename, legend[j], average])
+        makingexcl(results, excel_path, exp_name) 
+    else:
+        results = []
+        for i, culturename in enumerate(names):
+            for j in range(i*no_perculture, (i+1)*no_perculture, 1):
+                ODs = []
+                for k in range(1, no_timepoints):
+                    ODs.append(data.iloc[j, k])
+                D = fitting(fit_curve, ODs, np.array(times), data.iloc[j, 1])
+                print(culturename, legend[j], D)
+                results.append([culturename, legend[j], D])
+        makingexcl(results, excel_path, exp_name)
 
-    results = []
-    for i, culturename in enumerate(names):
-        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            doubling_times = []
-            for k in range(1, no_timepoints):
-                if data.iloc[j, k] > data.iloc[j, k-1]:
-                    doubling_times.append((np.log(2) * (times[k] - times[k-1]))/ np.log(data.iloc[j, k] / data.iloc[j, k-1]))
-            average = sum(doubling_times) / len(doubling_times)
-            print(culturename, legend[j], average)
-            results.append([culturename, legend[j], average])
-    results = pd.DataFrame(results)
-    results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
-    results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx', index=False)
 
 
 ### CC
