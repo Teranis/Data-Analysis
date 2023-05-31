@@ -19,6 +19,8 @@ from scipy.optimize import curve_fit
 
 import matplotlib.cm as mcolors
 
+import subprocess
+
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -69,7 +71,35 @@ def importconfigOD():
     print(excel_path)
     return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit
 
+def openpath():
+    os.chdir("..")
 
+def openexpath():
+    path = os.path.abspath("..")
+    subprocess.Popen(['explorer', path])
+
+def openconfig():
+    for filename in ['config.CC', 'config.OD']:
+        try:
+            subprocess.run(['start', '', filename], shell=True)  # For Windows
+        except FileNotFoundError:
+            try:
+                subprocess.run(['xdg-open', filename])  # For Linux
+            except FileNotFoundError:
+                try:
+                    subprocess.run(['open', filename])  # For macOS
+                except FileNotFoundError:
+                    print("Unable to open the file.")
+
+def openexamplexlsx():
+    for filename in ['example.xlsx']:
+        try:
+            subprocess.run(['start', '', filename], shell=True)  # For Windows
+        except FileNotFoundError:
+            try:
+                subprocess.run(['open', '-a', 'Microsoft Excel', filename])  # For macOS
+            except FileNotFoundError:
+                print("Unable to open the file with Excel.")
 ### CC
 def import_data_CC(path):
     ## imports data from a single file
