@@ -35,7 +35,7 @@ import subprocess
 #### Functions
 ### ConfigLoad
 def importconfigCC():
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    parent_dir = os.path.dirname(__file__)
     config_file_path = os.path.join(parent_dir, 'configCC.json')
     with open(config_file_path, 'r') as input_file:
         config_raw = input_file.read()
@@ -50,7 +50,7 @@ def importconfigCC():
     return CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm
 
 def importconfigOD():
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    parent_dir = os.path.dirname(__file__)
     config_file_path = os.path.join(parent_dir, 'configOD.json')
     with open(config_file_path, 'r') as input_file:
         config_raw = input_file.read()
@@ -72,14 +72,17 @@ def importconfigOD():
     return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit
 
 def openpath():
-    os.chdir("..")
+    file_dir = os.path.dirname(__file__)
+    subprocess.run(['cd', file_dir], shell=True)
 
-def openexpath():
-    path = os.path.abspath("..")
+def openexp():
+    path = os.path.dirname(__file__)
     subprocess.Popen(['explorer', path])
 
 def openconfig():
-    for filename in ['config.CC', 'config.OD']:
+    file_dir = os.path.dirname(__file__)
+    for filename in ['configCC.json', 'configOD.json']:
+        filename = os.path.join(file_dir, filename)
         try:
             subprocess.run(['start', '', filename], shell=True)  # For Windows
         except FileNotFoundError:
@@ -92,14 +95,15 @@ def openconfig():
                     print("Unable to open the file.")
 
 def openexamplexlsx():
-    for filename in ['example.xlsx']:
+    file_dir = os.path.dirname(__file__)
+    filename = os.path.join(file_dir, 'OD_measurements_example.xlsx')
+    try:
+        subprocess.run(['start', '', filename], shell=True)  # For Windows
+    except FileNotFoundError:
         try:
-            subprocess.run(['start', '', filename], shell=True)  # For Windows
+            subprocess.run(['open', '-a', 'Microsoft Excel', filename])  # For macOS
         except FileNotFoundError:
-            try:
-                subprocess.run(['open', '-a', 'Microsoft Excel', filename])  # For macOS
-            except FileNotFoundError:
-                print("Unable to open the file with Excel.")
+            print("Unable to open the file with Excel.")
 ### CC
 def import_data_CC(path):
     ## imports data from a single file

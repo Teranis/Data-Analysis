@@ -27,13 +27,13 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
-    <Content Include="configCC.json" />
-    <Content Include="configOD.json" />
     <Content Include="data_analysis\.gitignore" />
+    <Content Include="data_analysis\configCC.json" />
+    <Content Include="data_analysis\configOD.json" />
+    <Content Include="data_analysis\OD_measurements_example.xlsx" />
     <Content Include="data_analysis\__pycache__\Data_Analysis.cpython-311.pyc" />
     <Content Include="LICENSE" />
     <Content Include="MANIFEST.in" />
-    <Content Include="OD_measurements_example.xlsx" />
     <Content Include="pyproject.toml" />
     <Content Include="README.md" />
     <Content Include="requirements.txt" />
@@ -45,7 +45,6 @@
     <Compile Include="data_analysis\run.py" />
     <Compile Include="data_analysis\_version.py" />
     <Compile Include="data_analysis\__init__.py" />
-    <Compile Include="setup.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="..\..\..\venvs\main\">

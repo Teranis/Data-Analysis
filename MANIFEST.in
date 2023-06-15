@@ -1,3 +1,2 @@
-include configCC.json
-include configOD.json
-include OD_measurements_example.xlsx
+include LICENSE
+include data_analysis/*
