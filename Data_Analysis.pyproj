@@ -4,15 +4,15 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2c79cce3-a895-49c9-88e2-4a81d0284365</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>data_analysis\run.py</StartupFile>
     <SearchPath>..\..\my_stuff</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Data Analysis</Name>
     <RootNamespace>Data_Analysis</RootNamespace>
-    <InterpreterId>MSBuild|main|$(MSBuildProjectFullPath)</InterpreterId>
+    <InterpreterId>Global|VisualStudio|main</InterpreterId>
     <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
+    <TestFramework>Pytest</TestFramework>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -24,6 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
+    <InterpreterReference Include="Global|VisualStudio|main" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />

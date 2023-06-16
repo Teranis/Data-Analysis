@@ -21,6 +21,11 @@ import matplotlib.cm as mcolors
 
 import subprocess
 
+import statsmodels.api as sm
+
+import statsmodels.formula.api as smf
+
+
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -283,12 +288,33 @@ def fit_curve_lin(time, start_OD, D):
     OD = start_OD + time*D
     return OD
 
-def fitting(fit_curve, OD, time, start_OD, startval):
-## fitting the data
-    D, cov_ma = curve_fit(lambda time, D: fit_curve(time, start_OD, D), time, OD, startval)
-    if OD_exp_fit == True:
-        D = log(2)/D
-    return D
+#def fitting(fit_curve, ODs, time, start_OD, fitstartval):
+### fitting the data using scipy
+#    D, cov_ma = curve_fit(lambda time, D: fit_curve(time, start_OD, D), time, ODs, fitstartval)
+#    return D
+
+def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, legend):
+    ## fitting the data using statmodels
+    if OD_exp_fit != True:
+        time = sm.add_constant(time)
+        #print(ODs)
+        #print(time)
+        #print(fitstartval)
+        #ODs[:, 0] = start_OD
+        #print(ODs)
+        model = sm.OLS(ODs, time)
+        results = model.fit()
+    else:
+        #print(ODs)
+        for i, OD in enumerate(ODs):
+            ODs[i] = log(OD/start_OD)
+        #print(ODs)
+        #print(time)
+        model = sm.OLS(ODs, time)
+        results = model.fit()
+    print("\n\n" + culture_name + " "  + legend)
+    print(results.summary())
+    return results
 
 #### Main functions
 #def test():
@@ -346,11 +372,12 @@ def doublingtime():
                 if data.iloc[j, k] > data.iloc[j, k-1]:
                     doubling_times.append((np.log(2) * (times[k] - times[k-1]))/ np.log(data.iloc[j, k] / data.iloc[j, k-1]))
             average = sum(doubling_times) / len(doubling_times)
-            print(culturename, legend[j], average)
+            #print(culturename, legend[j], average)
             results.append([culturename, legend[j], average])
     results = pd.DataFrame(results)
     results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
     results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx', index=False) 
+
     if use_fit == True:
         results_avg = results.copy()
         results = []
@@ -361,27 +388,52 @@ def doublingtime():
                 ODs = []
                 for k in range(no_timepoints):
                     ODs.append(data.iloc[j, k])
+                ###Different implementations for the fit
+                ###
+                #print(type(results))
+                #print(results)
+                result = fitting_new(ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2], OD_exp_fit, culturename, legend[j])
                 if OD_exp_fit == True:
-                    D = fitting(fit_curve, ODs, np.array(times), data.iloc[j, 1], results_avg.iloc[j][2])
+                    D = result.params[0]
+                    D = log(2)/D
+                    results.append([culturename, legend[j], D])
                 else:
-                    D = fitting(fit_curve_lin, ODs, np.array(times), data.iloc[j, 1], results_avg.iloc[j][2])
-                results.append([culturename, legend[j], D])
+                    D = result.params[1]
+                    starting_OD_fit = result.params[0]
+                    results.append([culturename, legend[j], D, starting_OD_fit])
         results = pd.DataFrame(results)
-        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
+        if OD_exp_fit:
+            results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
+        else:
+            results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]:"Fit starting OD"}, inplace=True)
+                ###
+                
+                    
+                ###
+                #if OD_exp_fit == True:
+                #    D = fitting(fit_curve, ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2])
+                #    D = log(2)/D
+                #else:
+                #    D = fitting(fit_curve_lin, ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2])
+        #results.append([culturename, legend[j], D])
+        #results = pd.DataFrame(results)
+                ####
+
         results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx', index=False)
     color_map = mcolors.get_cmap('tab10')
     colors = [color_map(i) for i in range(no_perculture)]
-    print(len(colors))
     for i, culturename in enumerate(names):
         fig, ax = plt.subplots()
         for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            scatter = ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
+            ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
             y = []
             for k, _ in enumerate(times):
-                if OD_exp_fit == True:
-                    y.append(fit_curve(times[k], data.iloc[j, 0], log(2)/results.iloc[j][2]))
+                if OD_exp_fit:
+                    y.append(np.exp(times[k]*log(2)/results.iloc[j][2])*data.iloc[j, 0])
+                        ###fit_curve(times[k], data.iloc[j, 0], log(2)/results.iloc[j][2]))
                 else:
-                    y.append(fit_curve_lin(times[k], data.iloc[j, 0], results.iloc[j][2]))
+                    #print(fit_curve_lin(times[k], data.iloc[j, 0], results.iloc[j][2]))
+                    y.append(fit_curve_lin(times[k], results.iloc[j][3], results.iloc[j][2]))
             ax.plot(times, y, color=colors[j-i*no_perculture])
         ax.set_title(culturename)
         ax.set_xlabel('Time (h)')
@@ -389,7 +441,7 @@ def doublingtime():
             ax.set_ylabel('Normalized Optical Density')
         else:
             ax.set_ylabel('Optical Density')
-        ax.set_yscale('log')
+        #ax.set_yscale('log')
         ax.legend()
         ax.grid(True)
         fig.canvas.manager.set_window_title(exp_name + '_' + culturename + '_fit')
