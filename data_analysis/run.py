@@ -1,7 +1,9 @@
-import Data_Analysis
+import core
+import OD
+import CC
 print('Running Data Analysis')
     
-Data_Analysis.doublingtime()
+OD.doublingtime()
 
 ####Possible commands
 ##CC
