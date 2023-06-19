@@ -1,6 +1,6 @@
 import os
 import subprocess
-
+import matplotlib.pyplot as plt
 
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
@@ -45,3 +45,11 @@ def openexamplexlsx():
             subprocess.run(['open', '-a', 'Microsoft Excel', filename])  # For macOS
         except FileNotFoundError:
             print("Unable to open the file with Excel.")
+
+def sort_labels(ax, custom_order):
+    ## sorts out CC labels
+    if custom_order != []:
+        handles, labels = ax.get_legend_handles_labels()
+        sort_list = sorted(range(len(labels)), key=lambda k: custom_order.index(labels[k]))
+        ax.legend([handles[idx] for idx in sort_list],[labels[idx] for idx in sort_list])
+    return ax

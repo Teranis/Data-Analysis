@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import regex as re
 import math
 from configload import importconfigCC
-
+from core import sort_labels as sort_labels_CC
 
 ### small
 def import_data_CC(path):

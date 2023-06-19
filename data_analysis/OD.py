@@ -8,7 +8,8 @@ import matplotlib.cm as mcolors
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from configload import importconfigOD
-
+from matplotlib.legend_handler import HandlerTuple
+from core import sort_labels
 ### small
 def import_data_OD(path):
     data = pd.read_excel(path)
@@ -198,12 +199,22 @@ def doublingtime():
     color_map = mcolors.get_cmap('tab10')
     colors = [color_map(i) for i in range(no_perculture)]
 
-    fig2, ax2 = plt.subplots()
+    width = 1/(no_perculture+1)
+    multiplier = 0.0
+    fig2, ax2 = plt.subplots(layout="constrained")
+    index = np.arange(no_cultures)
+    handles = []
+    labels = []
     for i, culturename in enumerate(names):
-        ###Plotting Growthcurves
+        ###Plotting hormone conc vs doubling time
         k = i * no_perculture
         l = (i + 1) * no_perculture
-        ax2.plot(results.iloc[k:l,1], results.iloc[k:l,2], marker='x', label=culturename)
+        for j in range(k, l, 1):
+            #print(j)
+            offset = width * multiplier
+            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width, color=colors[j-i*no_perculture])
+            multiplier += 1
+        multiplier += 1
         ###plotting fit
         fig, ax = plt.subplots()
         for j in range(i*no_perculture, (i+1)*no_perculture, 1):
@@ -232,11 +243,17 @@ def doublingtime():
 
 
     ax2.set_title("Hormone concentration vs doublingtime")
-    ax2.set_xlabel('Hormone concentration')
+    ax2.set_xticks(index + ((no_cultures +1)* width) / 2)
+    ax2.set_xticklabels(names)
+    ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
-    ax2.legend()
+
+    handles, labels = ax2.get_legend_handles_labels()
+    handles = handles[0:no_perculture]
+    labels = labels[0:no_perculture]
+    ax2.legend(handles, labels)
+
     ax2.grid(True)
-    ax2.invert_yaxis()
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
     fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))
     plt.show()
