@@ -39,10 +39,12 @@
     <Content Include="README.md" />
     <Content Include="requirements.txt" />
     <Content Include="setup.cfg" />
-    <Content Include="UpgradeLog.htm" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="data_analysis\Data_Analysis.py" />
+    <Compile Include="data_analysis\CC.py" />
+    <Compile Include="data_analysis\configload.py" />
+    <Compile Include="data_analysis\core.py" />
+    <Compile Include="data_analysis\OD.py" />
     <Compile Include="data_analysis\run.py" />
     <Compile Include="data_analysis\_version.py" />
     <Compile Include="data_analysis\__init__.py" />

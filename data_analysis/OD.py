@@ -98,9 +98,6 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
     print(results.summary())
     return results
 
-def plot_doublingtime(results, use_fit):
-
-
 ### Main
 def odplot():
     ## creates plots for each culture with normalized OD
@@ -200,7 +197,14 @@ def doublingtime():
         results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx', index=False)
     color_map = mcolors.get_cmap('tab10')
     colors = [color_map(i) for i in range(no_perculture)]
+
+    fig2, ax2 = plt.subplots()
     for i, culturename in enumerate(names):
+        ###Plotting Growthcurves
+        k = i * no_perculture
+        l = (i + 1) * no_perculture
+        ax2.plot(results.iloc[k:l,1], results.iloc[k:l,2], marker='x', label=culturename)
+        ###plotting fit
         fig, ax = plt.subplots()
         for j in range(i*no_perculture, (i+1)*no_perculture, 1):
             ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
@@ -219,11 +223,20 @@ def doublingtime():
             ax.set_ylabel('Normalized Optical Density')
         else:
             ax.set_ylabel('Optical Density')
-        #ax.set_yscale('log')
+        ax.set_yscale('log')
         ax.legend()
         ax.grid(True)
         fig.canvas.manager.set_window_title(exp_name + '_' + culturename + '_fit')
         #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
+        fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
 
+
+    ax2.set_title("Hormone concentration vs doublingtime")
+    ax2.set_xlabel('Hormone concentration')
+    ax2.set_ylabel('Doubling time (h)')
+    ax2.legend()
+    ax2.grid(True)
+    ax2.invert_yaxis()
+    fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
+    fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))
     plt.show()
