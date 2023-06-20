@@ -6,5 +6,6 @@
   "OD_no_cultures": 3,
   "OD_norm_data": true,
   "OD_use_fit": true,
-  "OD_exp_fit": true
+  "OD_exp_fit": true,
+  "OD_add_error_to_OD_plot": false
 }   

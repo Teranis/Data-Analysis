@@ -1,13 +1,14 @@
-from math import log
+from math import log, exp, sqrt
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np 
+import numpy as np
 import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
 from core import  labelereorg
+
 ### small
 def import_data_OD(path):
     data = pd.read_excel(path)
@@ -132,7 +133,7 @@ def odplot():
 
 def doublingtime():
     ## calculates doubling time for each culture
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit = importconfigOD()
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
     times = metadata_time(data, no_timepoints)
@@ -171,15 +172,21 @@ def doublingtime():
                 result = fitting_new(ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2], OD_exp_fit, culturename, legend[j])
                 if OD_exp_fit == True:
                     D = result.params[1]
-                    D = log(2)/D
-                    starting_OD_fit = result.params[0]
-                    results.append([culturename, legend[j], D, starting_OD_fit])
+                    linoffset = result.params[0]
+                    D = (log(2)-linoffset)/D
+                    starting_OD_fit = exp(linoffset)*data.iloc[j, 0]
+                    starting_OD_fit_err = (result.bse[0]**2 * result.params[0]**2)**(1/2)
+                    partA = -1 / result.params[1]
+                    partB = -(np.log(2) - result.params[0]) / (result.params[1] ** 2)
+                    standard_error = sqrt((partA * result.bse[0])**2 + (partB *  result.bse[1])**2)
                 else:
                     D = result.params[1]
+                    standard_error = result.bse[1]
                     starting_OD_fit = result.params[0]
-                    results.append([culturename, legend[j], D, starting_OD_fit])
+                    starting_OD_fit_err = result.bse[0]
+                results.append([culturename, legend[j], D, starting_OD_fit, standard_error, starting_OD_fit_err])
         results = pd.DataFrame(results)
-        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]:"Fit lin. offset"}, inplace=True)
+        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]:"Starting culture size from fit", results.columns[4]: "Confidence intervals 95% coeff", results.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
                 ###
                 
                     
@@ -201,14 +208,16 @@ def doublingtime():
     multiplier = 0.0
     fig2, ax2 = plt.subplots(layout="constrained")
     index = np.arange(no_cultures)
+    coordinates = []
+
     for i, culturename in enumerate(names):
         ###Plotting hormone conc vs doubling time
         k = i * no_perculture
         l = (i + 1) * no_perculture
         for j in range(k, l, 1):
-            #print(j)
             offset = width * multiplier
-            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width   )
+            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width)
+            coordinates.append(offset)
             multiplier += 1
         multiplier += 1
         ###plotting fit
@@ -216,14 +225,22 @@ def doublingtime():
         for j in range(i*no_perculture, (i+1)*no_perculture, 1):
             ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
             y = []
-            for k, _ in enumerate(times):
+            y_upper = []
+            y_lower = []
+            for time in times:
                 if OD_exp_fit:
-                    y.append(np.exp(times[k]*log(2)/results.iloc[j][2])*data.iloc[j, 0])
-                        ###fit_curve(times[k], data.iloc[j, 0], log(2)/results.iloc[j][2]))
+                    y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
+                    y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
+                    y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
+                        ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
                 else:
-                    #print(fit_curve_lin(times[k], data.iloc[j, 0], results.iloc[j][2]))
-                    y.append(fit_curve_lin(times[k], results.iloc[j][3], results.iloc[j][2]))
+                    #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
+                    y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
+                    y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
+                    y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
             ax.plot(times, y, color=colors[j-i*no_perculture])
+            if adderrorbars == True:
+                ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)
         ax.set_title(culturename)
         ax.set_xlabel('Time (h)')
         if OD_norm_data == True:
@@ -246,13 +263,7 @@ def doublingtime():
 
 
     ax2 = labelereorg(ax2)
-
-    #ax2 = sort_labels(ax2)
-    #handles, labels = ax2.get_legend_handles_labels()
-    #handles = handles[0:no_perculture]
-    #labels = labels[0:no_perculture]
-    #ax2.legend(handles, labels)
-
+    ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
     fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))

@@ -38,4 +38,5 @@ def importconfigOD():
         if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
             excel_path = os.path.join(excel_folder_path, file_name)
     print(excel_path)
-    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit
+    OD_add_error_to_OD_plot = config['OD_add_error_to_OD_plot']
+    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot
