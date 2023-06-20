@@ -6,10 +6,8 @@ import numpy as np
 import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
-import statsmodels.formula.api as smf
 from configload import importconfigOD
-from matplotlib.legend_handler import HandlerTuple
-from core import sort_labels
+from core import  labelereorg
 ### small
 def import_data_OD(path):
     data = pd.read_excel(path)
@@ -203,8 +201,6 @@ def doublingtime():
     multiplier = 0.0
     fig2, ax2 = plt.subplots(layout="constrained")
     index = np.arange(no_cultures)
-    handles = []
-    labels = []
     for i, culturename in enumerate(names):
         ###Plotting hormone conc vs doubling time
         k = i * no_perculture
@@ -212,7 +208,7 @@ def doublingtime():
         for j in range(k, l, 1):
             #print(j)
             offset = width * multiplier
-            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width, color=colors[j-i*no_perculture])
+            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width   )
             multiplier += 1
         multiplier += 1
         ###plotting fit
@@ -241,17 +237,21 @@ def doublingtime():
         #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
         fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
 
-
+    
     ax2.set_title("Hormone concentration vs doublingtime")
     ax2.set_xticks(index + ((no_cultures +1)* width) / 2)
     ax2.set_xticklabels(names)
     ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
 
-    handles, labels = ax2.get_legend_handles_labels()
-    handles = handles[0:no_perculture]
-    labels = labels[0:no_perculture]
-    ax2.legend(handles, labels)
+
+    ax2 = labelereorg(ax2)
+
+    #ax2 = sort_labels(ax2)
+    #handles, labels = ax2.get_legend_handles_labels()
+    #handles = handles[0:no_perculture]
+    #labels = labels[0:no_perculture]
+    #ax2.legend(handles, labels)
 
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
