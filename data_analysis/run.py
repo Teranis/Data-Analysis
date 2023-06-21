@@ -3,7 +3,7 @@ import OD
 import CC
 print('Running Data Analysis')
     
-OD.doublingtime()
+CC.coulterocunter()
 
 ####Possible commands
 ##CC

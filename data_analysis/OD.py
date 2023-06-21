@@ -101,7 +101,7 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
 ### Main
 def odplot():
     ## creates plots for each culture with normalized OD
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit = importconfigOD()
+    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
     times = metadata_time(data, no_timepoints)

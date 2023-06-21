@@ -16,7 +16,8 @@ def importconfigCC():
     custom_order = config['CC_custom_order']
     CC_norm_data = config['CC_norm_data']
     CC_culm = config['CC_culm']
-    return CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm
+    CC_fit = config['CC_fit']
+    return CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit
 
 def importconfigOD():
     parent_dir = os.path.dirname(__file__)
