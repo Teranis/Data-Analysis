@@ -67,9 +67,8 @@ def labelreorg(axs, custom_order=[], deldouble=True):
             if label not in new_labels:
                 new_handles.append(handle)
                 new_labels.append(label)
-
-        color_map = mcolors.get_cmap('tab10')
-        colors = [color_map(i) for i in range(len(new_labels))]
+        
+        colors = getcolormap(len(new_labels))
 
         for obj, label in zip(axs.get_children(), labels):
             obj.set_color(colors[new_labels.index(label)])
@@ -81,7 +80,7 @@ def saveexcel(what, where):
     already_warned = False
     while True:
         try:
-            what.to_excel(where)
+            what.to_excel(where, index=False)
         except PermissionError:
             if not already_warned:
                 print('PermissionError: Please close the excel file before saving.')

@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 import operator
 from core import saveexcel, labelreorg
-from data_analysis.core import getcolormap
+from core import getcolormap
+import copy
 ### small
 def import_data_CC(path):
     ## imports data from a single file
@@ -188,22 +189,107 @@ def pltfit(ax, x, CC_culm, param_optimised, param_covariance_matrix, label="", c
     return ax
 
 
-def savexlsxfit_CC(result_master, CC_path, CC_exp_name):
+def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names, custom_order=[]):
     ###
+    result_master = copy.deepcopy(result_master_ext)
     for i, _ in enumerate(result_master):
         for j in range(1, 4):
             result_master[i][j] = str(result_master[i][j][0]) + "+-" + str(result_master[i][j][1])
+    result_master_sorted = []
+    for name in culture_names:
+        listforculture = []
+        for entry in result_master:
+            if type(entry[0]) != float:
+                if re.match('^.*=?('+name+')', entry[0]):
+                    entry[0] = entry[0].lstrip(name)
+                    entry[0] = entry[0].lstrip("_")
+                    entry[0] = entry[0].rstrip("nM_2")
+                    entry[0] = entry[0].replace("_", ".")
+                    entry[0] = float(entry[0])
+                    listforculture.append(entry)
+        sorted_list = []
+        sorted_list2 = []
+        if custom_order == []:
+            sorted_list = sorted(listforculture, key=lambda x: x[0])
+        else:
+            custom_order = [entry.rstrip("nM") for entry in custom_order]
+            for entry in custom_order:
+                for entry2 in listforculture:
+                    if entry == entry2[0]:
+                        sorted_list.append(listforculture)
 
+        for entry in sorted_list:
+            entry[0] = name + "_" + str(entry[0]) + "nM"
+            sorted_list2.append(entry)
+        result_master_sorted += sorted_list2
     ###
-    func_column = ["C*exp(-(X-X_mean)**2/(2*sigma**2))"] + [None]*(len(result_master)-1) ###change this to the function from gaus()
-    result_master = pd.DataFrame(result_master)
+    func_column = ["C*exp(-(X-X_mean)**2/(2*sigma**2))"] + [None]*(len(result_master_sorted)-1) ###change this to the function from gaus()
+    result_master = pd.DataFrame(result_master_sorted)
     result_master['function'] = func_column
     result_master.columns = ['name', 'C', 'X_mean', 'sigma', 'function']
     saveexcel(result_master, os.path.join(CC_path, CC_exp_name) + '_fit.xlsx')
-
-def plotfitdata(culturename, param_optimised, param_covariance_matrix):
-    return 
 ### main
+def plotfitdata():
+    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
+    data = import_all_data_CC(CC_path)
+    data = norm_data_cc(data, CC_norm_data)
+    result_master = []
+    for entry in data:
+        entry[0] = entry[0].rstrip(".=#Z2")
+        param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
+        result = [entry[0]]
+        for i in range(3):
+            result.append([param_optimised[i], param_covariance_matrix[i,i]])
+        result_master.append(result)
+    savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names)
+    ihatehowlistswork = []
+    for name in culture_names:
+        listforculture = []
+        for entry in result_master:
+            if type(entry[0]) != float:
+                if re.match('^.*=?('+name+')', entry[0]):
+                    entry[0] = entry[0].lstrip(name)
+                    entry[0] = entry[0].lstrip("_")
+                    entry[0] = entry[0].rstrip("nM_2")
+                    entry[0] = entry[0].replace("_", ".")
+                    entry[0] = float(entry[0])
+                    listforculture.append(entry)
+
+        fig, ax = plt.subplots()
+        ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture])
+        ax.grid(True)
+        ax.set_title(name+ " fit")
+        ax.set_ylabel('Volume (uL)')
+        ax.set_xlabel("Hormone concentration (nM)")
+        fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize_' + name)
+        save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize_' + name + '.png'
+        plt.savefig(save_path)
+        print('Saved plot to ' + save_path)
+        listforculture = [str(name)] + listforculture
+        ihatehowlistswork.append(listforculture)
+
+    fig, ax = plt.subplots()
+    colors = getcolormap(len(ihatehowlistswork))
+    
+    for listforculture in ihatehowlistswork:
+        label = listforculture[0]
+        del listforculture[0]
+        print([sublist[1] for sublist in listforculture])
+        print([sublist[2][0] for sublist in listforculture])
+        ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], label=label)
+    ax.grid(True)
+    ax.set_title(" fit")
+    ax.set_ylabel('Volume (uL)')
+    ax.set_xlabel("Hormone concentration (nM)")
+    ax.legend()
+    fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize')
+    save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize.png'
+    plt.savefig(save_path)
+    print('Saved plot to ' + save_path)
+
+
+    plt.show()
+
 def coultercounter():
     ## creates CC plots for each exp separately cumulatively
     CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
@@ -237,7 +323,7 @@ def coultercounter():
         plt.savefig(save_path)
         print('Saved plot to ' + save_path)
     if CC_fit == True:
-        savexlsxfit_CC(result_master, CC_path, CC_exp_name)
+        savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names, custom_order)
     plt.show()
 
 def coulterocunter_together():
@@ -292,5 +378,5 @@ def coulterocunter_together():
         save_path = os.path.join(CC_path, CC_exp_name) + '_' + culture_name + '.png'
         plt.savefig(save_path)
         print('Saved plot to ' + save_path)
-    savexlsxfit_CC(result_master_excel, CC_path, CC_exp_name)
+    savexlsxfit_CC(result_master_fit, CC_path, CC_exp_name, culture_names, custom_order)
     plt.show()

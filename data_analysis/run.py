@@ -3,12 +3,13 @@ import OD
 import CC
 print('Running Data Analysis')
     
-CC.coulterocunter_together()
+CC.plotfitdata()
 
 ####Possible commands
 ##CC
 #CC.coultercounter()
 #CC.coulterocunter_together()
+#plotfitdata
 ##OD
 #OD.odnormplot()
 #OD.doublingtime()
