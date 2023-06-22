@@ -7,12 +7,10 @@ import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
-from core import  labelereorg
+from core import  labelreorg, saveexcel, getcolormap
+from core import loadexcel as import_data_OD
 
 ### small
-def import_data_OD(path):
-    data = pd.read_excel(path)
-    return data
 
 def cut_data(data):
     data = data.iloc[1:, 2:]
@@ -153,7 +151,7 @@ def doublingtime():
             results.append([culturename, legend[j], average])
     results = pd.DataFrame(results)
     results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
-    results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx', index=False) 
+    saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx') 
 
     if use_fit == True:
         results_avg = results.copy()
@@ -200,9 +198,8 @@ def doublingtime():
         #results = pd.DataFrame(results)
                 ####
 
-        results.to_excel(os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx', index=False)
-    color_map = mcolors.get_cmap('tab10')
-    colors = [color_map(i) for i in range(no_perculture)]
+        saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx')
+    colors = getcolormap(no_perculture)
 
     width = 1/(no_perculture+1)
     multiplier = 0.0
@@ -262,7 +259,7 @@ def doublingtime():
     ax2.set_ylabel('Doubling time (h)')
 
 
-    ax2 = labelereorg(ax2)
+    ax2 = labelreorg(ax2)
     ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')

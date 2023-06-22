@@ -3,13 +3,13 @@ import OD
 import CC
 print('Running Data Analysis')
     
-CC.coulterocunter()
+CC.coulterocunter_together()
 
 ####Possible commands
 ##CC
-#Data_Analysis.coultercounter()
-#Data_Analysis.coulterocunter_together()
+#CC.coultercounter()
+#CC.coulterocunter_together()
 ##OD
-#Data_Analysis.odnormplot()
-#Data_Analysis.doublingtime()
+#OD.odnormplot()
+#OD.doublingtime()
 ######Don't forget to change the path and other parameters in the respective config files
