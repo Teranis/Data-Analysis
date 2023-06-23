@@ -173,7 +173,7 @@ def errorgauslist(xlist, param_optimised, param_covariance_matrix, lowerupper, c
 def fit(x, y, what):
     mean = sum(np.multiply(x, y))/sum(y)                  
     sigma = sum(np.power(np.multiply(y, (np.subtract(x, mean))) ,2))/sum(y)
-    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[max(y),mean,sigma],maxfev=5000)
+    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[sum(y),mean,sigma],maxfev=5000)
     #print fit Gaussian parameters
     print("\nFit parameters of " + what + ": ")
     print("C = ", param_optimised[0], "+-",np.sqrt(param_covariance_matrix[0,0]))
