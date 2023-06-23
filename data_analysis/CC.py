@@ -1,19 +1,22 @@
 from calendar import c
 import os
+from re import A
 import matplotlib.pyplot as plt
 import regex as re
 import math
-from configload import importconfigCC
-from core import sort_labels as sort_labels_CC
+from data_analysis.configload import importconfigCC
+from data_analysis.core import sort_labels as sort_labels_CC
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy import asarray as ar,exp
 import numpy as np
 import pandas as pd
 import operator
-from core import saveexcel, labelreorg
-from core import getcolormap
+from data_analysis.core import saveexcel, labelreorg
+from data_analysis.core import getcolormap
 import copy
+import matplotlib.cbook
+#import seaborn as sns
 ### small
 def import_data_CC(path):
     ## imports data from a single file
@@ -52,7 +55,7 @@ def import_data_CC(path):
         numbers[i] = int(number)
     #print(vols, numbers)
     for i, vol in enumerate(vols):
-        vols[i] = (math.sqrt(vol)**3)*4/3
+        vols[i] = (4/3)*math.pi*(vol)**(3)
     return vols, numbers
 
 def import_all_data_CC(path):
@@ -65,6 +68,9 @@ def import_all_data_CC(path):
     #print(data)
     return data
 
+def calcbarsize(data):
+    return max(data[1])/len(data[1])
+
 def norm_data_cc(data, CC_norm_data):
     if CC_norm_data:
         for entry in data:
@@ -74,25 +80,30 @@ def norm_data_cc(data, CC_norm_data):
     return data
                 
 def edit_label_CC(label, culture_name):
-    ## edits CC label
+    ## edits CC label)
     label = label.rstrip("_") #idk if this is necessary always, maybe I just did some mistakes when saving my og data set
-    label = label.replace(culture_name+'-1_', '') ##### Change this according to your naming scheme
+    label = label.replace(culture_name + '_', '') ##### Change this according to your naming scheme
     label = label.replace('_', '.')
     return label
 
-#def sort_labels_CC(ax, custom_order):
-#    ## sorts out CC labels
-#    if custom_order != []:
-#        handles, labels = plt.gca().get_legend_handles_labels()
-#        sort_list = sorted(range(len(labels)), key=lambda k: custom_order.index(labels[k]))
-#        ax.legend([handles[idx] for idx in sort_list],[labels[idx] for idx in sort_list])
-#    return ax
+def match_name(name, entry, listforculture):
+    ### matches name of culture to data, and stripping all the unnecessary stuff to only give the horm conc afte
+    if type(entry[0]) != float:
+        if re.match('^.*=?('+name+')', entry[0]):
+            entry[0] = entry[0].lstrip(name)
+            entry[0] = entry[0].lstrip("_")
+            entry[0] = entry[0].rstrip("nM_2")
+            entry[0] = entry[0].replace("_", ".")
+            entry[0] = float(entry[0])
+            listforculture.append(entry)
+    return listforculture
+
 
 def plot_CC(entry, fig=None, ax=None):
     if not fig or not ax:
         fig, ax = plt.subplots()
     ## plots CC data
-    ax.bar(entry[1], entry[2], color="blue", alpha=0.7)
+    ax.bar(entry[1], entry[2], color="blue", alpha=0.7, width=calcbarsize(entry))
     return fig, ax
 
 def plot_together_CC(data, culture_name, fig=None, ax=None):
@@ -175,7 +186,7 @@ def pltfit(ax, x, CC_culm, param_optimised, param_covariance_matrix, label="", c
     if label != "":
         label = label + " fit"
     else:
-        label = "fit"
+        label = "Fit"
     if CC_culm != True:
         ax.plot(x, gauslist(x, param_optimised[0], param_optimised[1], param_optimised[2]), label=label, color=color)
         y_upper = errorgauslist(x, param_optimised, param_covariance_matrix, 'upper', False)
@@ -189,35 +200,22 @@ def pltfit(ax, x, CC_culm, param_optimised, param_covariance_matrix, label="", c
     return ax
 
 
-def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names, custom_order=[]):
+def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names):
     ###
-    result_master = copy.deepcopy(result_master_ext)
-    for i, _ in enumerate(result_master):
+    result_master_int = copy.deepcopy(result_master_ext)
+    #print(result_master_int)
+    for i, _ in enumerate(result_master_int):
         for j in range(1, 4):
-            result_master[i][j] = str(result_master[i][j][0]) + "+-" + str(result_master[i][j][1])
+            result_master_int[i][j] = str(result_master_int[i][j][0]) + "+-" + str(result_master_int[i][j][1])
     result_master_sorted = []
     for name in culture_names:
         listforculture = []
-        for entry in result_master:
-            if type(entry[0]) != float:
-                if re.match('^.*=?('+name+')', entry[0]):
-                    entry[0] = entry[0].lstrip(name)
-                    entry[0] = entry[0].lstrip("_")
-                    entry[0] = entry[0].rstrip("nM_2")
-                    entry[0] = entry[0].replace("_", ".")
-                    entry[0] = float(entry[0])
-                    listforculture.append(entry)
+        #print(result_master_int)
+        for entry in result_master_int:
+            listforculture = match_name(name, entry, listforculture)
         sorted_list = []
         sorted_list2 = []
-        if custom_order == []:
-            sorted_list = sorted(listforculture, key=lambda x: x[0])
-        else:
-            custom_order = [entry.rstrip("nM") for entry in custom_order]
-            for entry in custom_order:
-                for entry2 in listforculture:
-                    if entry == entry2[0]:
-                        sorted_list.append(listforculture)
-
+        sorted_list = sorted(listforculture, key=lambda x: x[0])
         for entry in sorted_list:
             entry[0] = name + "_" + str(entry[0]) + "nM"
             sorted_list2.append(entry)
@@ -228,9 +226,12 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names, custo
     result_master['function'] = func_column
     result_master.columns = ['name', 'C', 'X_mean', 'sigma', 'function']
     saveexcel(result_master, os.path.join(CC_path, CC_exp_name) + '_fit.xlsx')
+
+
 ### main
 def plotfitdata():
     CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
+    CC_norm_data = True
     data = import_all_data_CC(CC_path)
     data = norm_data_cc(data, CC_norm_data)
     result_master = []
@@ -246,48 +247,70 @@ def plotfitdata():
     for name in culture_names:
         listforculture = []
         for entry in result_master:
-            if type(entry[0]) != float:
-                if re.match('^.*=?('+name+')', entry[0]):
-                    entry[0] = entry[0].lstrip(name)
-                    entry[0] = entry[0].lstrip("_")
-                    entry[0] = entry[0].rstrip("nM_2")
-                    entry[0] = entry[0].replace("_", ".")
-                    entry[0] = float(entry[0])
-                    listforculture.append(entry)
+            listforculture = match_name(name, entry, listforculture)
 
         fig, ax = plt.subplots()
         ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture])
+        #print([sublist[2][0] for sublist in listforculture])
+        #ax.errorbar(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], yerr=[sublist[3][0] for sublist in listforculture], fmt='none', capsize=4)
+        #print([sublist[3][0] for sublist in listforculture])
         ax.grid(True)
-        ax.set_title(name+ " fit")
-        ax.set_ylabel('Volume (uL)')
+        ax.set_title(name+ " Fit results")
+        ax.set_ylabel('Volume (fL)')
         ax.set_xlabel("Hormone concentration (nM)")
         fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize_' + name)
         save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize_' + name + '.png'
-        plt.savefig(save_path)
+        fig.savefig(save_path)
         print('Saved plot to ' + save_path)
         listforculture = [str(name)] + listforculture
         ihatehowlistswork.append(listforculture)
 
     fig, ax = plt.subplots()
-    colors = getcolormap(len(ihatehowlistswork))
     
     for listforculture in ihatehowlistswork:
         label = listforculture[0]
         del listforculture[0]
-        print([sublist[1] for sublist in listforculture])
-        print([sublist[2][0] for sublist in listforculture])
+        #print([sublist[1] for sublist in listforculture])
+        #print([sublist[2][0] for sublist in listforculture])
         ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], label=label)
     ax.grid(True)
-    ax.set_title(" fit")
-    ax.set_ylabel('Volume (uL)')
+    ax.set_title("Fit")
+    ax.set_ylabel('Volume (fL)')
     ax.set_xlabel("Hormone concentration (nM)")
     ax.legend()
     fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize')
     save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize.png'
-    plt.savefig(save_path)
+    fig.savefig(save_path)
     print('Saved plot to ' + save_path)
 
+    plt.show()
 
+def boxplot():
+    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
+    data = import_all_data_CC(CC_path)
+    #data = norm_data_cc(data, CC_norm_data)
+    for entry in data:
+        entry[0] = entry[0].rstrip(".=#Z2")
+    for name in culture_names:
+        listforculture = []
+        for entry in data:
+            listforculture = match_name(name, entry, listforculture)
+        data_weighted_master = []
+        for entry in listforculture:
+            expanded_data = []
+            for i, _ in enumerate(entry[1]):
+                expanded_data += [entry[1][i]] * entry[2][i]
+            data_weighted_master.append([entry[0], expanded_data])
+        fig, ax = plt.subplots()
+        ax.boxplot([sublist [1] for sublist in data_weighted_master], positions=[sublist [0] for sublist in data_weighted_master], showfliers=False)
+        ax.grid(True)
+        ax.set_ylabel('Volume (fL)')
+        ax.set_xlabel("Hormone concentration (nM)")
+        ax.set_title(name+ " Cell Size")
+        fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize_Boxplot_' + name)
+        save_path = os.path.join(CC_path, CC_exp_name + '_CellSize_Boxplot_' + name + '.png')
+        fig.savefig(save_path)
+        print('Saved plot to ' + save_path)
     plt.show()
 
 def coultercounter():
@@ -312,7 +335,7 @@ def coultercounter():
             ax = pltfit(ax, entry[1], CC_culm, param_optimised, param_covariance_matrix)
             
         ax.set_title(entry[0])
-        ax.set_xlabel('Volume (uL)')
+        ax.set_xlabel('Volume (fL)')
         if CC_norm_data == True:
             ax.set_ylabel('Fraction of cells')
         else:
@@ -320,10 +343,10 @@ def coultercounter():
         ax.grid(True)
         fig.canvas.manager.set_window_title(CC_exp_name + '_' + entry[0])
         save_path = os.path.join(CC_path, CC_exp_name) + '_' + entry[0] + '.png'
-        plt.savefig(save_path)
+        fig.savefig(save_path)
         print('Saved plot to ' + save_path)
     if CC_fit == True:
-        savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names, custom_order)
+        savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names)
     plt.show()
 
 def coulterocunter_together():
@@ -368,7 +391,7 @@ def coulterocunter_together():
             ax.legend()
             ax = labelreorg(ax, custom_order, deldouble=False)
         ax.set_title(culture_name)
-        ax.set_xlabel('Volume (uL)')
+        ax.set_xlabel('Volume (fL)')
         if CC_norm_data == True:
             ax.set_ylabel('Fraction of cells')
         else:
@@ -376,7 +399,8 @@ def coulterocunter_together():
         ax.grid(True)
         fig.canvas.manager.set_window_title(CC_exp_name + '_' + culture_name)
         save_path = os.path.join(CC_path, CC_exp_name) + '_' + culture_name + '.png'
-        plt.savefig(save_path)
+        fig.savefig(save_path)
         print('Saved plot to ' + save_path)
-    savexlsxfit_CC(result_master_fit, CC_path, CC_exp_name, culture_names, custom_order)
+    if CC_fit == True:
+        savexlsxfit_CC(result_master_excel, CC_path, CC_exp_name, culture_names)
     plt.show()

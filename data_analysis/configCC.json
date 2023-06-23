@@ -1,9 +1,9 @@
 {
-  "CC_path": "I:\\Timon\\notes\\2023_05_26_ASY071_ASY073_ASY075",
+  "CC_path": "H:\\Timon\\notes\\2023_05_26_ASY071_ASY073_ASY075",
   "CC_exp_name": "Hormone_26_5_23",
   "CC_culture_names": [ "ASY071-1", "ASY073-1", "ASY075-1" ],
   "CC_custom_order": [ "0nM", "2.5nM", "5nM", "10nM", "15nM" ],
-  "CC_norm_data": true,
+  "CC_norm_data": false,
   "CC_culm": true,
   "CC_fit": true
 }

@@ -6,9 +6,9 @@ import numpy as np
 import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
-from configload import importconfigOD
-from core import  labelreorg, saveexcel, getcolormap
-from core import loadexcel as import_data_OD
+from data_analysis.configload import importconfigOD
+from data_analysis.core import  labelreorg, saveexcel, getcolormap
+from data_analysis.core import loadexcel as import_data_OD
 
 ### small
 
@@ -132,6 +132,9 @@ def odplot():
 def doublingtime():
     ## calculates doubling time for each culture
     excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
+    if use_fit != True:
+        OD_exp_fit = False
+        adderrorbars = False
     data = import_data_OD(excel_path)
     print(data)
     times = metadata_time(data, no_timepoints)
@@ -225,16 +228,19 @@ def doublingtime():
             y_upper = []
             y_lower = []
             for time in times:
-                if OD_exp_fit:
-                    y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
-                    y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
-                    y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
-                        ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
-                else:
-                    #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
-                    y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
-                    y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
-                    y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
+                if use_fit:
+                    if OD_exp_fit == True:
+                        y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
+                        if adderrorbars:
+                            y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
+                            y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
+                            ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
+                    elif OD_exp_fit != True:
+                        #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
+                        y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
+                        if adderrorbars:
+                            y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
+                            y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
             ax.plot(times, y, color=colors[j-i*no_perculture])
             if adderrorbars == True:
                 ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)

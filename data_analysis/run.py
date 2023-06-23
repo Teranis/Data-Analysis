@@ -9,7 +9,7 @@ CC.plotfitdata()
 ##CC
 #CC.coultercounter()
 #CC.coulterocunter_together()
-#plotfitdata
+#CC.plotfitdata
 ##OD
 #OD.odnormplot()
 #OD.doublingtime()
