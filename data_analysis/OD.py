@@ -1,14 +1,18 @@
 from math import log, exp, sqrt
 import os
+from re import M
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
-from data_analysis.configload import importconfigOD
-from data_analysis.core import  labelreorg, saveexcel, getcolormap
-from data_analysis.core import loadexcel as import_data_OD
+from configload import importconfigOD
+from core import  labelreorg, saveexcel, getcolormap
+from core import loadexcel as import_data_OD
+#from data_analysis.configload import importconfigOD
+#from data_analysis.core import  labelreorg, saveexcel, getcolormap
+#From data_analysis.core import loadexcel as import_data_OD
 
 ### small
 
@@ -53,7 +57,7 @@ def metadata_legend(data_metadata, total_pos):
     ## getting legend
     legend = []
     for i in range(1, total_pos+1):
-        legend.append(str(data_metadata.iloc[i, 1]) + 'nM') #Legend Unit here
+        legend.append(str(data_metadata.iloc[i, 1]) + ' nM') #Legend Unit here
     #print(legend)
     return legend
 
@@ -74,7 +78,18 @@ def fit_curve_lin(time, start_OD, D):
 
 def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, legend):
     ## fitting the data using statmodels
+    ODarray = np.array([])
+    timearray = np.array([])
+    ODs = np.array(ODs)
+    for i, OD in enumerate(ODs):
+        if np.isnan(OD) == False:
+            ODarray = np.append(ODarray, OD)
+            timearray = np.append(timearray, time[i])
+
+    time = timearray
+    ODs = ODarray
     if OD_exp_fit != True:
+        fitstartvals = [start_OD, fitstartval]
         time = sm.add_constant(time)
         #print(ODs)
         #print(time)
@@ -82,8 +97,9 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
         #ODs[:, 0] = start_OD
         #print(ODs)
         model = sm.OLS(ODs, time)
-        results = model.fit()
+        results = model.fit(start_params=fitstartvals)
     else:
+        fitstartvals = [0, log(2)/fitstartval]
         #print(ODs)
         for i, OD in enumerate(ODs):
             ODs[i] = log(OD/start_OD)
@@ -91,8 +107,10 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
         #print(ODs)
         #print(time)
         model = sm.OLS(ODs, time)
-        results = model.fit()
+        results = model.fit(start_params=fitstartvals)
+
     print("\n\n" + culture_name + " " + legend)
+    print(fitstartvals)
     print(results.summary())
     return results
 
@@ -155,6 +173,8 @@ def doublingtime():
     results = pd.DataFrame(results)
     results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time'}, inplace=True)
     saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime.xlsx') 
+    if OD_norm_data == True:
+        data = norm_data(data, total_pos, no_timepoints)
 
     if use_fit == True:
         results_avg = results.copy()
@@ -170,7 +190,7 @@ def doublingtime():
                 ###
                 #print(type(results))
                 #print(results)
-                result = fitting_new(ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2], OD_exp_fit, culturename, legend[j])
+                result = fitting_new(ODs, times, data.iloc[j, 0], results_avg.iloc[j][2], OD_exp_fit, culturename, legend[j])
                 if OD_exp_fit == True:
                     D = result.params[1]
                     linoffset = result.params[0]
@@ -202,8 +222,8 @@ def doublingtime():
                 ####
 
         saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx')
-    colors = getcolormap(no_perculture)
 
+    colors = getcolormap(no_perculture)
     width = 1/(no_perculture+1)
     multiplier = 0.0
     fig2, ax2 = plt.subplots(layout="constrained")
@@ -215,7 +235,7 @@ def doublingtime():
         k = i * no_perculture
         l = (i + 1) * no_perculture
         for j in range(k, l, 1):
-            offset = width * multiplier
+            offset = width * multiplier   
             ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width)
             coordinates.append(offset)
             multiplier += 1
@@ -228,22 +248,25 @@ def doublingtime():
             y_upper = []
             y_lower = []
             for time in times:
-                if use_fit:
-                    if OD_exp_fit == True:
-                        y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
-                        if adderrorbars:
-                            y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
-                            y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
-                            ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
-                    elif OD_exp_fit != True:
-                        #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
-                        y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
-                        if adderrorbars:
-                            y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
-                            y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
+                if use_fit != True:
+                    y.append(2**(time/results.iloc[j][2]) * data.iloc[j][0])
+                elif OD_exp_fit == True:
+                    y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
+                    if adderrorbars:
+                        y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
+                        y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
+                        ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
+                elif OD_exp_fit != True:
+                    #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
+                    y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
+                    if adderrorbars:
+                        y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
+                        y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
+            
             ax.plot(times, y, color=colors[j-i*no_perculture])
             if adderrorbars == True:
                 ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)
+
         ax.set_title(culturename)
         ax.set_xlabel('Time (h)')
         if OD_norm_data == True:
@@ -259,14 +282,15 @@ def doublingtime():
 
     
     ax2.set_title("Hormone concentration vs doublingtime")
-    ax2.set_xticks(index + ((no_cultures +1)* width) / 2)
+    ax2.set_xticks(index + (((no_perculture-1)/2)* width) )
     ax2.set_xticklabels(names)
     ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
 
 
     ax2 = labelreorg(ax2)
-    ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
+    if adderrorbars:
+        ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
     fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))

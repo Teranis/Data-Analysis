@@ -4,16 +4,18 @@ from re import A
 import matplotlib.pyplot as plt
 import regex as re
 import math
-from data_analysis.configload import importconfigCC
-from data_analysis.core import sort_labels as sort_labels_CC
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy import asarray as ar,exp
 import numpy as np
 import pandas as pd
 import operator
-from data_analysis.core import saveexcel, labelreorg
-from data_analysis.core import getcolormap
+#from data_analysis.core import saveexcel, labelreorg, getcolormap
+#from data_analysis.configload import importconfigCC
+#from data_analysis.core import sort_labels as sort_labels_CC
+from core import sort_labels as sort_labels_CC
+from core import labelreorg, getcolormap, saveexcel
+from configload import importconfigCC
 import copy
 import matplotlib.cbook
 #import seaborn as sns

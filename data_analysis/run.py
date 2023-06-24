@@ -3,7 +3,7 @@ import OD
 import CC
 print('Running Data Analysis')
     
-CC.plotfitdata()
+OD.odplot()
 
 ####Possible commands
 ##CC
@@ -11,6 +11,6 @@ CC.plotfitdata()
 #CC.coulterocunter_together()
 #CC.plotfitdata
 ##OD
-#OD.odnormplot()
+#OD.odplot()
 #OD.doublingtime()
 ######Don't forget to change the path and other parameters in the respective config files
