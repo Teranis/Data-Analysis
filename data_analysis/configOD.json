@@ -4,6 +4,6 @@
   "OD_norm_data": true,
   "_comment1": "leave OD_use_fit this on pls",
   "OD_use_fit": true,
-  "OD_exp_fit": false,
+  "OD_exp_fit": true,
   "OD_add_error_to_OD_plot": true
 }   
