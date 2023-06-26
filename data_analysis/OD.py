@@ -61,9 +61,14 @@ def metadata_legend(data_metadata, total_pos):
     #print(legend)
     return legend
 
-#getmetadata_genstuff(data):
-#    ## getting metadata
-#    data.iloc[0, 0] = data.iloc[0, 0].replace(' ', '')
+def getmetadata_genstuff(data):
+    ## getting metadata
+    no_timepoints = data.iloc[0,:].notna().sum()
+    total_pos = data.iloc[:,1].notna().sum()
+    no_culture = data.iloc[:,0].notna().sum()
+    no_perculture = int(total_pos / no_culture)
+    #print(no_timepoints, total_pos, no_culture, no_perculture)
+    return no_timepoints, total_pos, no_culture, no_perculture
 
 def fit_curve(time, start_OD, D):
     ## exp fit
@@ -128,9 +133,10 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
 ### Main
 def odplot():
     ## creates plots for each culture
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
+    excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
+    no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
     #no_cultures, no_perculture, no_timepoints, total_pos = getmetadata_genstuff(data)
     times = metadata_time(data, no_timepoints)
     names = metadata_names(data, total_pos, no_perculture)
@@ -161,11 +167,12 @@ def odplot():
 
 def doublingtime():
     ## calculates doubling time for each culture
-    excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
+    excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
     if use_fit != True:
         OD_exp_fit = False
         adderrorbars = False
     data = import_data_OD(excel_path)
+    no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
     print(data)
     times = metadata_time(data, no_timepoints)
     names = metadata_names(data, total_pos, no_perculture)
@@ -273,8 +280,9 @@ def doublingtime():
                     #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
                     y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
                     if adderrorbars:
-                        y_upper, y_lower = calcerrorslowerupper(calc_OD_lin, time, (data.iloc[j, 0], results.iloc[j][2]), (results.iloc[j][4], results.iloc[j][5]))
-            
+                        y_u, y_l = calcerrorslowerupper(calc_OD_lin, time, (data.iloc[j, 0], results.iloc[j][2]), (results.iloc[j][4], results.iloc[j][5]))
+                        y_upper.append(y_u)
+                        y_lower.append(y_l)
             ax.plot(times, y, color=colors[j-i*no_perculture])
             if adderrorbars == True:
                 ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)

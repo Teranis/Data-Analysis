@@ -28,10 +28,6 @@ def importconfigOD():
     config = json.loads(config_raw)
     excel_folder_path = config['OD_excel_path']
     exp_name = config['OD_exp_name']
-    no_timepoints = config['OD_no_timepoints']
-    no_perculture = config['OD_no_perculture']
-    no_cultures = config['OD_no_cultures']
-    total_pos = no_cultures * no_perculture
     OD_norm_data = config['OD_norm_data']
     use_fit = config['OD_use_fit']
     OD_exp_fit = config['OD_exp_fit']
@@ -40,4 +36,4 @@ def importconfigOD():
             excel_path = os.path.join(excel_folder_path, file_name)
     print(excel_path)
     OD_add_error_to_OD_plot = config['OD_add_error_to_OD_plot']
-    return excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot
+    return excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot
