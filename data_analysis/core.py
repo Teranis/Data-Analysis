@@ -6,6 +6,7 @@ import pandas as pd
 import time
 import math as m
 import numpy as np
+import itertools
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -119,4 +120,34 @@ def getcolormap(howmany):
         color_map = mcolors.get_cmap()
         colors = [color_map(i) for i in np.linspace(0, 1, howmany)]
     return colors
+
+def calcerrorslowerupper(func, x, *args):
+    '''
+    Calculates the upper and lower error bounds for the fit parameters.
+    syntax: calcerrorslowerupper(func, x, *args) where func is the function, x the first arg of func, and args are as follows: args = (value, uncertainty). Returns a tuple of the upper and lower bounds of the fit parameters. (max(ys), min(ys))
+    '''
+    if type(x) is float or int:
+        ys = []
+        consts = []
+        for arg in args:
+            consts.append((arg[0] - arg[1], arg[0] + arg[1]))
+        permutations = list(itertools.product(*consts))
+        for permutation in permutations:
+            ys.append(func(x, *permutation))
+        return max(ys), min(ys)
+    else:
+        y_min, y_max = [], []
+        for xentry in x:
+
+            ys = []
+            consts = []
+            for arg in args:
+                consts.append((arg[0] - arg[1], arg[0] + arg[1]))
+            permutations = list(itertools.product(*consts))
+            for permutation in permutations:
+                ys.append(func(xentry, *permutation))
+            y_min.append(min(ys))
+            y_max.append(max(ys))
+        return y_max, y_min
+
 ###I WILL SUBJUGATE MATPLOTLIB

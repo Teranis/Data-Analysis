@@ -1,15 +1,17 @@
 import core
 import OD
 import CC
+
 print('Running Data Analysis')
     
-OD.odplot()
+OD.doublingtime()
 
 ####Possible commands
 ##CC
 #CC.coultercounter()
 #CC.coulterocunter_together()
-#CC.plotfitdata
+#CC.plotfitdata()
+#CC.boxplot()
 ##OD
 #OD.odplot()
 #OD.doublingtime()

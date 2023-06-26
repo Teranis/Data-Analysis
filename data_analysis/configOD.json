@@ -1,11 +1,12 @@
 {
-  "OD_excel_path": "D:\\New folder",
+  "OD_excel_path": "H:\\Timon\\notes\\OD_measurements_26_05_23",
   "OD_exp_name": "example",
   "OD_no_timepoints": 6,
-  "OD_no_perculture": 4,
-  "OD_no_cultures": 6,
-  "OD_norm_data": false,
-  "OD_use_fit": false,
+  "OD_no_perculture": 5,
+  "OD_no_cultures": 3,
+  "OD_norm_data": true,
+  "_comment1": "leave OD_use_fit this on pls",
+  "OD_use_fit": true,
   "OD_exp_fit": true,
   "OD_add_error_to_OD_plot": true
 }   

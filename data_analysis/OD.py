@@ -8,7 +8,7 @@ import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
-from core import  labelreorg, saveexcel, getcolormap
+from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper
 from core import loadexcel as import_data_OD
 #from data_analysis.configload import importconfigOD
 #from data_analysis.core import  labelreorg, saveexcel, getcolormap
@@ -29,7 +29,7 @@ def norm_data(data, total_pos, no_timepoints):
     for i in range(total_pos):
         for j in range(no_timepoints):
             data.iloc[i, j] = data.iloc[i, j] * norm[i]
-    print(data)
+    #print(data)
     return data
 
 def metadata_time(data_metadata, no_timepoints):
@@ -61,10 +61,20 @@ def metadata_legend(data_metadata, total_pos):
     #print(legend)
     return legend
 
+#getmetadata_genstuff(data):
+#    ## getting metadata
+#    data.iloc[0, 0] = data.iloc[0, 0].replace(' ', '')
+
 def fit_curve(time, start_OD, D):
     ## exp fit
     OD = start_OD*np.exp(time*D)
     return OD
+
+def calc_OD(time, DT, startOD):
+     return 2**(time/DT) * startOD
+
+def calc_OD_lin(time, D, startOD):
+     return D*time + startOD
 
 def fit_curve_lin(time, start_OD, D):
     ## linear fit
@@ -107,19 +117,21 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
         #print(ODs)
         #print(time)
         model = sm.OLS(ODs, time)
-        results = model.fit(start_params=fitstartvals)
+        results = model.fit()
 
     print("\n\n" + culture_name + " " + legend)
     print(fitstartvals)
     print(results.summary())
     return results
 
+
 ### Main
 def odplot():
-    ## creates plots for each culture with normalized OD
+    ## creates plots for each culture
     excel_path, exp_name, no_timepoints, no_perculture, no_cultures, total_pos, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
     data = import_data_OD(excel_path)
     print(data)
+    #no_cultures, no_perculture, no_timepoints, total_pos = getmetadata_genstuff(data)
     times = metadata_time(data, no_timepoints)
     names = metadata_names(data, total_pos, no_perculture)
     legend = metadata_legend(data, total_pos)
@@ -253,15 +265,15 @@ def doublingtime():
                 elif OD_exp_fit == True:
                     y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
                     if adderrorbars:
-                        y_upper.append(2**(time/(results.iloc[j][2]+ results.iloc[j][4])) * (results.iloc[j][3] + results.iloc[j][5]))
-                        y_lower.append(2**(time/(results.iloc[j][2]- results.iloc[j][4])) * (results.iloc[j][3] - results.iloc[j][5]))
+                        y_u, y_l = calcerrorslowerupper(calc_OD, time, (results.iloc[j, 2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
+                        y_upper.append(y_u)
+                        y_lower.append(y_l)
                         ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
                 elif OD_exp_fit != True:
                     #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
                     y.append(fit_curve_lin(time, results.iloc[j][3], results.iloc[j][2]))
                     if adderrorbars:
-                        y_upper.append(fit_curve_lin(time, results.iloc[j][3] + results.iloc[j][5], results.iloc[j][2] + results.iloc[j][4]))
-                        y_lower.append(fit_curve_lin(time, results.iloc[j][3] - results.iloc[j][5], results.iloc[j][2] - results.iloc[j][4]))
+                        y_upper, y_lower = calcerrorslowerupper(calc_OD_lin, time, (data.iloc[j, 0], results.iloc[j][2]), (results.iloc[j][4], results.iloc[j][5]))
             
             ax.plot(times, y, color=colors[j-i*no_perculture])
             if adderrorbars == True:
