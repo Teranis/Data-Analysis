@@ -1,8 +1,8 @@
 {
-  "OD_excel_path": "C:\\Users\\timon\\Documents\\Randomshit",
+  "OD_excel_path": [ "H:\\Timon\\notes\\Trash" ],
   "OD_exp_name": "example",
+  "_comment1": "OD_exp_name is only for single exp. For multiple exp please change the name of the .xlsx files",
   "OD_norm_data": true,
-  "_comment1": "leave OD_use_fit this on pls",
   "OD_use_fit": true,
   "OD_exp_fit": true,
   "OD_add_error_to_OD_plot": true

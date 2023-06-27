@@ -8,8 +8,10 @@ import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
-from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper
+from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper, printl
 from core import loadexcel as import_data_OD
+import regex as re
+import copy
 #from data_analysis.configload import importconfigOD
 #from data_analysis.core import  labelreorg, saveexcel, getcolormap
 #From data_analysis.core import loadexcel as import_data_OD
@@ -126,127 +128,260 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
         model = sm.OLS(ODs, time)
         results = model.fit()
 
-    print("\n\n" + culture_name + " " + legend)
+    print("\n\n" + culture_name + legend)
     print(fitstartvals)
     print(results.summary())
     return results
 
+def metadata_congdata(data_master):
+    data_cong = []
+    data_lengths = []
+    data_times = []
+    data_names = []
+    data_legends = []
+    data_no_cultures = []
+    data_no_perculture = []
+    data_no_timepoints = []
+    data_total_pos = []
+    for data in data_master:
+        no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
+        #print(data)
+        #data_cong += data
+        data_cong = None
+        data_lengths.append(len(data.columns))
+        data_times.append(metadata_time(data, no_timepoints))
+        data_names.append(metadata_names(data, total_pos, no_perculture))
+        data_legends.append(metadata_legend(data, total_pos))
+        data_no_cultures.append(no_cultures)
+        data_no_perculture.append(no_perculture)
+        data_no_timepoints.append(no_timepoints)
+        data_total_pos.append(total_pos)
+        #print(data_names, data_legends)
+    return data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos
 
+def match_names(data_names, starting_list_index=0, name_matches=[]):
+    ##del already matched names
+    data_names_copy = copy.deepcopy(data_names)
+    #print(data_names_copy)
+    for matches in name_matches:
+        for match in matches:
+            #print([matches[0][0],matches[0][1]])
+            #print(data_names[matches[0][0]][matches[0][1]])
+            index = data_names_copy[match[0]].index(data_names[matches[0][0]][matches[0][1]])
+            data_names_copy[match[0]][index] = None
+    #print(data_names_copy)
+    for i, name1 in enumerate(data_names_copy[starting_list_index]):
+        if name1 != None:
+            name_match = [(starting_list_index, i)]
+            for j, name_list in enumerate(data_names_copy[starting_list_index+1:]):
+                j = starting_list_index + 1+ j
+                for k, name2 in enumerate(name_list):
+                    if re.match(name1, name2):
+                        name_match.append((j, k))
+            #print(data_names_copy)
+            #print(name_match)
+            name_match = tuple(name_match)
+            name_matches.append(name_match)
+    starting_list_index += 1
+    if starting_list_index < len(data_names):
+        #print(name_matches)
+        return match_names(data_names, starting_list_index, name_matches)
+    else:
+        name_matches = tuple(name_matches)
+        print(name_matches)
+        return name_matches
+    
+def prepdata_data_multexp(data_master, OD_norm_data):
+    data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos = metadata_congdata(data_master)
+
+    data_names_legends = []
+    for i, _ in enumerate(data_names):
+        name_legends = []
+        for j, name in enumerate(data_names[i]):
+            for k in range(data_no_perculture[i]):
+                name_legend = str(name) + "$" + data_legends[i][j*data_no_perculture[i]+k]
+                name_legends.append(name_legend)
+        data_names_legends.append(name_legends)    
+    name_legend_matches = match_names(data_names_legends)
+
+    for i, datap in enumerate(data_master):
+        data_master[i] = cut_data(datap)
+        if OD_norm_data == True:
+            data_master[i] = norm_data(data_master[i], data_total_pos[i], data_no_timepoints[i])
+
+    return data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends
 ### Main
 def odplot():
     ## creates plots for each culture
-    excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
-    data = import_data_OD(excel_path)
-    print(data)
-    no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
-    #no_cultures, no_perculture, no_timepoints, total_pos = getmetadata_genstuff(data)
-    times = metadata_time(data, no_timepoints)
-    names = metadata_names(data, total_pos, no_perculture)
-    legend = metadata_legend(data, total_pos)
-    data = cut_data(data)
-    if OD_norm_data == True:
-        data = norm_data(data, total_pos, no_timepoints)
-
-    # creates the figs
-    for i, culturename in enumerate(names):
-        fig, ax = plt.subplots()
-        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            ax.plot(times, data.iloc[j], marker='o', label=legend[j])
-        ax.set_title(culturename)
-        ax.set_xlabel('Time (h)')
+    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    data_master = []
+    for excel_path in excel_paths:
+        print("\n\nData from "+ excel_path)
+        data = import_data_OD(excel_path)
+        data_master.append(data)
+        print(data)
+    for masterindex, datap_master in enumerate(data_master):
+        data = datap_master.copy(deep=True)
+        no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
+        times = metadata_time(data, no_timepoints)
+        names = metadata_names(data, total_pos, no_perculture)
+        legend = metadata_legend(data, total_pos)
+        data = cut_data(data)
+        if len(datap_master) > 1:
+            exp_name = exp_names[masterindex].replace("_", ".")
         if OD_norm_data == True:
-            ax.set_ylabel('Normalized Optical Density')
-        else:
-            ax.set_ylabel('Optical Density')
-        ax.set_yscale('log')
-        ax.legend()
-        ax.grid(True)
-        fig.canvas.manager.set_window_title(exp_name + '_' + culturename)
-        #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-        plt.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '.png'))
+            data = norm_data(data, total_pos, no_timepoints)
 
+        # creates the figs
+        for i, culturename in enumerate(names):
+            fig, ax = plt.subplots()
+            for j in range(i*no_perculture, (i+1)*no_perculture, 1):
+                ax.plot(times, data.iloc[j], marker='o', label=legend[j])
+            ax.set_title(culturename)
+            ax.set_xlabel('Time (h)')
+            if OD_norm_data == True:
+                ax.set_ylabel('Normalized Optical Density')
+            else:
+                ax.set_ylabel('Optical Density')
+            ax.set_yscale('log')
+            ax.legend()
+            ax.grid(True)
+            exp_name = exp_name.replace(".", "_")
+            fig.canvas.manager.set_window_title(str(exp_name) + '_' + culturename)
+            #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
+            plt.savefig(os.path.join(os.path.dirname(excel_path), str(exp_name) + '_' + culturename + '.png'))
+
+
+    if len(data_master) > 1:
+        data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends = prepdata_data_multexp(data_master, OD_norm_data)
+        for i, match in enumerate(name_legend_matches):
+            fig, ax = plt.subplots()
+            for listindex, entryindex in match:
+                data = data_master[listindex]
+                label = str(data_names_legends[listindex][entryindex].replace("$", " ")) + " from run: " + str(exp_names[listindex]).replace("_", ".")
+                while len(data_times[listindex]) > len(data.iloc[entryindex]):
+                    del data_times[listindex][-1]
+                #print(data_times[listindex])
+                #print(data)
+                #print(label)
+                ax.plot(data_times[listindex], data.iloc[entryindex], marker='o', label=label)
+            ax.set_title(data_names_legends[listindex][entryindex].replace("$", " "))
+            ax.set_xlabel('Time (h)')
+            if OD_norm_data == True:
+                ax.set_ylabel('Normalized Optical Density')
+            else:
+                ax.set_ylabel('Optical Density')
+            ax.set_yscale('log')
+            ax.legend()
+            ax.grid(True)
+            savename = data_names_legends[listindex][entryindex].replace("$", "_").replace(".", "_").replace(" ", "_")
+            fig.canvas.manager.set_window_title(savename + '_all_runs')
+            #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
+            plt.savefig(os.path.join(os.path.dirname(excel_path),savename + '_all_runs.png'))
     plt.show()
 
 def doublingtime():
     ## calculates doubling time for each culture
-    excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, adderrorbars = importconfigOD()
+    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    data_master = []
     if use_fit != True:
         OD_exp_fit = False
         adderrorbars = False
-    data = import_data_OD(excel_path)
-    no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
-    print(data)
-    times = metadata_time(data, no_timepoints)
-    names = metadata_names(data, total_pos, no_perculture)
-    legend = metadata_legend(data, total_pos)
-    data = cut_data(data)
-    print(data) 
-    results = []
-    if OD_norm_data == True:
-        data = norm_data(data, total_pos, no_timepoints)
-    for i, culturename in enumerate(names):
-        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            doubling_times = []
-            for k in range(1, no_timepoints):
-                if data.iloc[j, k] > data.iloc[j, k-1]:
-                    doubling_times.append((np.log(2) * (times[k] - times[k-1]))/ np.log(data.iloc[j, k] / data.iloc[j, k-1]))
-            average = sum(doubling_times) / len(doubling_times)
-            #print(culturename, legend[j], average)
-            results.append([culturename, legend[j], average, data.iloc[j][0]])
-    results = pd.DataFrame(results)
-    results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]: 'Starting OD'}, inplace=True)
-    saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_hardcalc.xlsx') 
+    for excel_path in excel_paths:
+        print("\n\nData from"+ excel_path)
+        data = import_data_OD(excel_path)
+        data_master.append(data)
+        print(data)
+    if len(excel_paths) > 1:
+        OD_norm_data = True
+    data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends = prepdata_data_multexp(data_master, OD_norm_data=False)
 
-
-    if use_fit == True:
-        results_avg = results.copy()
+    #no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
+    #times = metadata_time(data, no_timepoints)
+    #names = metadata_names(data, total_pos, no_perculture)
+    #legend = metadata_legend(data, total_pos)
+    #data = cut_data(data)
+    #print(data)
+    #print(exp_names)
+    results_master = []
+    for masterindex, data in enumerate(data_master):
         results = []
-        if OD_norm_data == True:
-            data = norm_data(data, total_pos, no_timepoints)
+        no_perculture = data_no_perculture[masterindex]
+        times = data_times[masterindex]
+        names = data_names[masterindex]
+        no_timepoints = data_no_timepoints[masterindex]
+        legend = data_legends[masterindex]
         for i, culturename in enumerate(names):
             for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-                ODs = []
-                for k in range(no_timepoints):
-                    ODs.append(data.iloc[j, k])
-                ###Different implementations for the fit
-                ###
-                #print(type(results))
-                #print(results)
-                result = fitting_new(ODs, times, data.iloc[j, 0], results_avg.iloc[j][2], OD_exp_fit, culturename, legend[j])
-                if OD_exp_fit == True:
-                    D = result.params[1]
-                    linoffset = result.params[0]
-                    D = (log(2)-linoffset)/D
-                    starting_OD_fit = exp(linoffset)*data.iloc[j, 0]
-                    partA = exp(linoffset)*data.iloc[j, 0]*linoffset
-                    starting_OD_fit_err = (result.bse[0]**2 * partA**2)**(1/2)
-                    partA = -1 / result.params[1]
-                    partB = -(np.log(2) - result.params[0]) / (result.params[1] ** 2)
-                    standard_error = sqrt((partA * result.bse[0])**2 + (partB * result.bse[1])**2)
-                else:
-                    D = (2-result.params[0])/result.params[1]
-                    starting_OD_fit = result.params[0]*data.iloc[j, 0]
-                    partA = -1 / result.params[1]
-                    partB = -(2 - result.params[0]) / (result.params[1] ** 2)
-                    standard_error = sqrt((partA * result.bse[0])**2 + (partB * result.bse[1])**2)
-                    starting_OD_fit_err = result.bse[0]*data.iloc[j, 0]
-                results.append([culturename, legend[j], D, starting_OD_fit, standard_error, starting_OD_fit_err])
+                doubling_times = []
+                for k in range(1, no_timepoints):
+                    if data.iloc[j, k] > data.iloc[j, k-1]:
+                        doubling_times.append((np.log(2) * (times[k] - times[k-1]))/ np.log(data.iloc[j, k] / data.iloc[j, k-1]))
+                average = sum(doubling_times) / len(doubling_times)
+                #print(culturename, legend[j], average)
+                results.append([culturename, legend[j], average, data.iloc[j][0]])
         results = pd.DataFrame(results)
-        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]:"Starting culture size from fit", results.columns[4]: "Confidence intervals 95% coeff", results.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
-                ###
-                
-                    
-                ###
-                #if OD_exp_fit == True:
-                #    D = fitting(fit_curve, ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2])
-                #    D = log(2)/D
-                #else:
-                #    D = fitting(fit_curve_lin, ODs, np.array(times), data.iloc[j, 0], results_avg.iloc[j][2])
-        #results.append([culturename, legend[j], D])
-        #results = pd.DataFrame(results)
-                ####
-
-        saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_name) + '_doublingtime_fit.xlsx')
+        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]: 'Starting OD'}, inplace=True)
+        saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_names[masterindex]) + '_doublingtime_hardcalc.xlsx') 
+        results_master.append(results)
+    
+    if use_fit == True:
+        results_master_avg = results_master.copy()
+        results_master = []
+        if OD_norm_data == True:
+            for i, datap in enumerate(data_master):
+                data_master[i] = norm_data(datap, data_total_pos[i], data_no_timepoints[i])
+        for i, matches in enumerate(name_legend_matches):
+            OD_time = []
+            for listindex, entryindex in matches:
+                for k in range(data_no_timepoints[listindex]):
+                    OD_time.append((data_master[listindex].iloc[entryindex][k], data_times[listindex][k]))
+                #print(data_names_legends[listindex][entryindex])
+                #printl(OD_time)
+            listindex_root, entryindex_root = matches[0]
+            name_entry, legend_entry = re.split(r"\$", data_names_legends[listindex_root][entryindex_root], 1)
+            start_list = []
+            pred_list = []
+            for listindex, entryindex in matches:
+                start_list.append(data_master[listindex].iloc[entryindex, 0])
+                #printl(len(results_master_avg[listindex]))
+                len(results_master_avg[listindex])
+                for j in range(len(results_master_avg[listindex])):
+                    #print(listindex, entryindex, j)
+                    #print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
+                    #print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
+                    if data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip() == results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip():
+                        printl("found smth")
+                        print(listindex, entryindex)
+                        print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
+                        print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
+                        pred_list.append(results_master_avg[listindex].iloc[entryindex][2])
+            start = sum(start_list)/len(start_list)
+            pred = sum(pred_list)/len(pred_list)
+            result = fitting_new([OD[0] for OD in OD_time], [time[1] for time in OD_time], start, pred, OD_exp_fit, name_entry, legend_entry)
+            if OD_exp_fit == True:
+                D = result.params[1]
+                linoffset = result.params[0]
+                D = (log(2)-linoffset)/D
+                starting_OD_fit = exp(linoffset)*start
+                partA = exp(linoffset)*start*linoffset
+                starting_OD_fit_err = (result.bse[0]**2 * partA**2)**(1/2)
+                partA = -1 / result.params[1]
+                partB = -(np.log(2) - result.params[0]) / (result.params[1] ** 2)
+                standard_error = sqrt((partA * result.bse[0])**2 + (partB * result.bse[1])**2)
+            else:
+                D = (2-result.params[0])/result.params[1]
+                starting_OD_fit = result.params[0]*start
+                partA = -1 / result.params[1]
+                partB = -(2 - result.params[0]) / (result.params[1] ** 2)
+                standard_error = sqrt((partA * result.bse[0])**2 + (partB * result.bse[1])**2)
+                starting_OD_fit_err = result.bse[0]*start
+            results_master.append([name_entry, legend_entry, D, starting_OD_fit, standard_error, starting_OD_fit_err])
+        results_master = pd.DataFrame(results_master)
+        print(results_master)
+        #print(results_master.shape[1])
+        results_master.rename(columns={results_master.columns[0]: 'Culture', results_master.columns[1]: 'Hormone conc.', results_master.columns[2]: 'Doubling time', results_master.columns[3]:"Starting culture size from fit", results_master.columns[4]: "Confidence intervals 95% coeff", results_master.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
+        saveexcel(results_master, os.path.join(os.path.dirname(excel_path), exp_name + '_doublingtime_fit.xlsx'))
 
     colors = getcolormap(no_perculture)
     width = 1/(no_perculture+1)

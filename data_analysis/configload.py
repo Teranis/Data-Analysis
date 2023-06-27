@@ -26,14 +26,18 @@ def importconfigOD():
         config_raw = input_file.read()
     config_raw = config_raw.replace('\\','/')
     config = json.loads(config_raw)
-    excel_folder_path = config['OD_excel_path']
+    excel_folder_paths = config['OD_excel_path']
     exp_name = config['OD_exp_name']
     OD_norm_data = config['OD_norm_data']
     use_fit = config['OD_use_fit']
     OD_exp_fit = config['OD_exp_fit']
-    for file_name in os.listdir(excel_folder_path):
-        if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
-            excel_path = os.path.join(excel_folder_path, file_name)
-    print(excel_path)
+    excel_paths = []
+    exp_names = []
+    for excel_folder_path in excel_folder_paths:
+        for file_name in os.listdir(excel_folder_path):
+            if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
+                excel_paths.append(os.path.join(excel_folder_path, file_name))
+                print(file_name)
+                exp_names.append(re.findall(r"\d{1,2}_\d{1,2}_\d{1,2}_?\d?", file_name)[0])
     OD_add_error_to_OD_plot = config['OD_add_error_to_OD_plot']
-    return excel_path, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot
+    return excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names
