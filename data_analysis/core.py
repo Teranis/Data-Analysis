@@ -11,6 +11,7 @@ import itertools
 import inspect ###
 from datetime import datetime
 from pprint import pprint
+import regex as re
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -57,14 +58,32 @@ def openexamplexlsx():
 
 def sort_labels(ax, custom_order):
     ## sorts out CC labels
-    if custom_order != []:
-        handles, labels = ax.get_legend_handles_labels()
+    if custom_order:
+        legend = ax.get_legend()
+        #printl([text.get_text() for text in legend.get_texts()])
+        #print(legend.get_lines())
+        handles, labels = legend.legendHandles, [text.get_text() for text in legend.get_texts()]
         sort_list = sorted(range(len(labels)), key=lambda k: custom_order.index(labels[k]))
+        ax.legend(handles=[], labels= [])
         ax.legend([handles[idx] for idx in sort_list],[labels[idx] for idx in sort_list])
     return ax
 
-def labelreorg(axs, custom_order=[], deldouble=True):
-    axs = sort_labels(axs, custom_order)
+def labelreorg(axs, custom_order=[], deldouble=True, find_custom_order=False):
+    if find_custom_order:
+        labels = axs.get_legend_handles_labels()[1]
+        for i, label in enumerate(labels):
+            labels[i] = (float(re.findall(r"\d+\.?\d+", label)[0]), label)
+        labels = sorted(labels, key=lambda x: x[0])
+        custom_order = [label[1] for label in labels]
+        if deldouble:
+            custom_order_single = []
+            for entry in custom_order:
+                if entry not in custom_order_single:
+                    custom_order_single.append(entry)
+            custom_order = custom_order_single
+        #print("Custom order: ")
+        #print(custom_order)
+    
     if deldouble:
         handles, labels = axs.get_legend_handles_labels()
         new_handles, new_labels = [], []
@@ -72,13 +91,15 @@ def labelreorg(axs, custom_order=[], deldouble=True):
             if label not in new_labels:
                 new_handles.append(handle)
                 new_labels.append(label)
-        
+
         colors = getcolormap(len(new_labels))
 
         for obj, label in zip(axs.get_children(), labels):
             obj.set_color(colors[new_labels.index(label)])
-            
+
         axs.legend(new_handles, new_labels)
+
+    axs = sort_labels(axs, custom_order)
     return axs
 
 def saveexcel(what, where):
