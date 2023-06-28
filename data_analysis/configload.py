@@ -33,11 +33,18 @@ def importconfigOD():
     OD_exp_fit = config['OD_exp_fit']
     excel_paths = []
     exp_names = []
-    for excel_folder_path in excel_folder_paths:
-        for file_name in os.listdir(excel_folder_path):
-            if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
-                excel_paths.append(os.path.join(excel_folder_path, file_name))
-                print(file_name)
-                exp_names.append(re.findall(r"\d{1,2}_\d{1,2}_\d{1,2}_?\d?", file_name)[0])
+    try:
+        for excel_folder_path in excel_folder_paths:
+            for file_name in os.listdir(excel_folder_path):
+                if re.search(r"(=?(measure))(=?(.*\.xlsx)$)", file_name):
+                    excel_paths.append(os.path.join(excel_folder_path, file_name))
+                    print(file_name)
+                    exp_names.append(re.findall(r"\d{1,2}_\d{1,2}_\d{1,2}_?\d?", file_name)[0])
+    except:
+        print("No files found!")
+        exit()
+    if excel_paths == []:
+        print("No files found!")
+        exit()
     OD_add_error_to_OD_plot = config['OD_add_error_to_OD_plot']
     return excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names
