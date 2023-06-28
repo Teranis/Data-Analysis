@@ -231,14 +231,16 @@ def find_legend_list(data_legends):
     for i, legend in enumerate(data_legends):
         for j, entry in enumerate(legend):
             if legend not in legend_list:
-                legend_list.append(legend, (i, j))
-            else: 
+                legend_list.append([legend, (i, j)])
+            else:
                 legend_list.append((i, j))
     return legend_list
+
 ### Main
 def odplot():
     ## creates plots for each culture
     excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     for excel_path in excel_paths:
         print("\n\nData from "+ excel_path)
@@ -308,6 +310,7 @@ def odplot():
 def doublingtime():
     ## calculates doubling time for each culture
     excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     if use_fit != True:
         OD_exp_fit = False
@@ -412,75 +415,33 @@ def doublingtime():
     #print(data_names)
     cult_list = find_cult_list(data_names)
     legend_list = find_legend_list(data_legends)
-    printl(cult_list, pretty=True)
-
+    sorted_results = []
+    #printl(cult_list, pretty=True)
     colors = getcolormap(len(legend_list))
-    for i, cult_coords in enumerate(cult_list):
-        width = 1/(no_perculture+1)
-        multiplier = 0.0
-        index = np.arange(no_cultures)
-        coordinates = []
-
-    for i, culturename in enumerate(names):
-        ###Plotting hormone conc vs doubling time
-        k = i * no_perculture
-        l = (i + 1) * no_perculture
-        for j in range(k, l, 1):
-            offset = width * multiplier   
-            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width)
-            coordinates.append(offset)
+    for culturename in cult_list:
+        per_culture_result = []
+        culturename = culturename[0]
+        for _, entry in results_master.iterrows():
+            #print(culturename.rstrip().lstrip().lower())
+            #print(entry[0].rstrip().lstrip().lower())
+            if entry[0].rstrip().lstrip().lower() == culturename.rstrip().lstrip().lower():
+                per_culture_result.append(entry)
+        sorted_results.append(per_culture_result)
+    printl(sorted_results, pretty=True)
+    width = 1/(max([len(per_culture_result) for per_culture_result in sorted_results])+1)    
+    coordinates = []
+    multiplier = 0
+    offset = 0
+    for i, per_culture_result in enumerate(sorted_results):
+        coordinates.append(offset)
+        for result in per_culture_result:
+            offset = width * multiplier  
+            ax2.bar(offset, per_culture_result[j][2], label=per_culture_result[j][1], width=width)
+            
             multiplier += 1
         multiplier += 1
-        ###plotting fit
-        fig, ax = plt.subplots()
-        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
-            y = []
-            y_upper = []
-            y_lower = []
-            for time in times:
-                if use_fit != True:
-                    y.append(calc_OD(time, results.iloc[j][2], results.iloc[j][3]))
-                elif OD_exp_fit == True:
-                    y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
-                    if adderrorbars:
-                        y_u, y_l = calcerrorslowerupper(calc_OD, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
-                        y_upper.append(y_u)
-                        y_lower.append(y_l)
-                        ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
-                elif OD_exp_fit != True:
-                    #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
-                    y.append(calc_OD_lin(time, results.iloc[j][2], results.iloc[j][3]))
-                    if adderrorbars:
-                        y_u, y_l = calcerrorslowerupper(calc_OD_lin, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
-                        y_upper.append(y_u)
-                        y_lower.append(y_l)
-                elif use_fit == True:
-                    y.append(results.iloc[j][2]*time +  results.iloc[j][3])
-            ax.plot(times, y, color=colors[j-i*no_perculture])
-            if adderrorbars == True:
-                ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)
-
-        ax.set_title(culturename)
-        ax.set_xlabel('Time (h)')
-        if OD_norm_data == True:
-            ax.set_ylabel('Normalized Optical Density')
-        else:
-            ax.set_ylabel('Optical Density')
-        ax.set_yscale('log')
-        ax.legend()
-        ax.grid(True)
-        if use_fit == True:
-            fig.canvas.manager.set_window_title(exp_name + '_' + culturename + '_fit')
-            #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
-        else:
-            fig.canvas.manager.set_window_title(exp_name + '_' + culturename+ '_basicfit')
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_basicfit.png'))
-
-    
     ax2.set_title("Hormone concentration vs doubling-time")
-    ax2.set_xticks(index + (((no_perculture-1)/2)* width) )
+    #ax2.set_xticks(index + (((no_perculture-1)/2)* width) )
     ax2.set_xticklabels(names)
     ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
@@ -488,8 +449,57 @@ def doublingtime():
 
     ax2 = labelreorg(ax2)
     if adderrorbars:
-        ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
+        ax2.errorbar(coordinates, per_culture_result.iloc[:,2], yerr=per_culture_result.iloc[:,4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
     fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))
+        ###plotting fit
+        #fig, ax = plt.subplots()
+        #for j in range(i*no_perculture, (i+1)*no_perculture, 1):
+        #    ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
+        #    y = []
+        #    y_upper = []
+        #    y_lower = []
+        #    for time in times:
+        #        if use_fit != True:
+        #            y.append(calc_OD(time, results.iloc[j][2], results.iloc[j][3]))
+        #        elif OD_exp_fit == True:
+        #            y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
+        #            if adderrorbars:
+        #                y_u, y_l = calcerrorslowerupper(calc_OD, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
+        #                y_upper.append(y_u)
+        #                y_lower.append(y_l)
+        #                ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
+        #        elif OD_exp_fit != True:
+        #            #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
+        #            y.append(calc_OD_lin(time, results.iloc[j][2], results.iloc[j][3]))
+        #            if adderrorbars:
+        #                y_u, y_l = calcerrorslowerupper(calc_OD_lin, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
+        #                y_upper.append(y_u)
+        #                y_lower.append(y_l)
+        #        elif use_fit == True:
+        #            y.append(results.iloc[j][2]*time +  results.iloc[j][3])
+        #    ax.plot(times, y, color=colors[j-i*no_perculture])
+        #    if adderrorbars == True:
+        #        ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)
+
+        #ax.set_title(culturename)
+        #ax.set_xlabel('Time (h)')
+        #if OD_norm_data == True:
+        #    ax.set_ylabel('Normalized Optical Density')
+        #else:
+        #    ax.set_ylabel('Optical Density')
+        #ax.set_yscale('log')
+        #ax.legend()
+        #ax.grid(True)
+        #if use_fit == True:
+        #    fig.canvas.manager.set_window_title(exp_name + '_' + culturename + '_fit')
+        #    #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
+        #    fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
+        #else:
+        #    fig.canvas.manager.set_window_title(exp_name + '_' + culturename+ '_basicfit')
+        #    fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_basicfit.png'))
+
+    
+
     plt.show()
