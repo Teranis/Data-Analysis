@@ -210,6 +210,31 @@ def prepdata_data_multexp(data_master, OD_norm_data):
             data_master[i] = norm_data(data_master[i], data_total_pos[i], data_no_timepoints[i])
 
     return data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends
+
+def find_cult_list(data_names):
+
+    name_dict = {}
+    for i, data_list in enumerate(data_names):
+        #printl(data_list)
+        for j, name in enumerate(data_list):
+            og_name = name
+            name.lower().lstrip().rstrip()
+            if name in name_dict:
+                name_dict[name].append((i, j))
+            else:
+                name_dict[name] = [og_name, (i, j)]
+    culture_list = [value for key, value in name_dict.items()]
+    return culture_list
+
+def find_legend_list(data_legends):
+    legend_list = []
+    for i, legend in enumerate(data_legends):
+        for j, entry in enumerate(legend):
+            if legend not in legend_list:
+                legend_list.append(legend, (i, j))
+            else: 
+                legend_list.append((i, j))
+    return legend_list
 ### Main
 def odplot():
     ## creates plots for each culture
@@ -347,14 +372,14 @@ def doublingtime():
                 #printl(len(results_master_avg[listindex]))
                 len(results_master_avg[listindex])
                 for j in range(len(results_master_avg[listindex])):
+                    data_part = data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip()
+                    res_part = results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip()
                     #print(listindex, entryindex, j)
-                    #print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
-                    #print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
-                    if data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip() == results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip():
+                    #print(data_part, res_part)
+                    if data_part == res_part:
                         printl("found smth")
                         print(listindex, entryindex)
-                        print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
-                        print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
+                        print(data_part, res_part)
                         pred_list.append(results_master_avg[listindex].iloc[entryindex][2])
             start = sum(start_list)/len(start_list)
             pred = sum(pred_list)/len(pred_list)
@@ -382,13 +407,19 @@ def doublingtime():
         #print(results_master.shape[1])
         results_master.rename(columns={results_master.columns[0]: 'Culture', results_master.columns[1]: 'Hormone conc.', results_master.columns[2]: 'Doubling time', results_master.columns[3]:"Starting culture size from fit", results_master.columns[4]: "Confidence intervals 95% coeff", results_master.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
         saveexcel(results_master, os.path.join(os.path.dirname(excel_path), exp_name + '_doublingtime_fit.xlsx'))
-
-    colors = getcolormap(no_perculture)
-    width = 1/(no_perculture+1)
-    multiplier = 0.0
+    total_len = len(name_legend_matches)
     fig2, ax2 = plt.subplots(layout="constrained")
-    index = np.arange(no_cultures)
-    coordinates = []
+    #print(data_names)
+    cult_list = find_cult_list(data_names)
+    legend_list = find_legend_list(data_legends)
+    printl(cult_list, pretty=True)
+
+    colors = getcolormap(len(legend_list))
+    for i, cult_coords in enumerate(cult_list):
+        width = 1/(no_perculture+1)
+        multiplier = 0.0
+        index = np.arange(no_cultures)
+        coordinates = []
 
     for i, culturename in enumerate(names):
         ###Plotting hormone conc vs doubling time
