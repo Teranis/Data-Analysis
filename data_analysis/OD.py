@@ -1,6 +1,5 @@
 from math import log, exp, sqrt
 import os
-from re import M
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +11,7 @@ from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper, prin
 from core import loadexcel as import_data_OD
 import regex as re
 import copy
+import math
 #from data_analysis.configload import importconfigOD
 #from data_analysis.core import  labelreorg, saveexcel, getcolormap
 #From data_analysis.core import loadexcel as import_data_OD
@@ -128,7 +128,7 @@ def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, lege
         model = sm.OLS(ODs, time)
         results = model.fit()
 
-    print("\n\n" + culture_name + legend)
+    print("\n\n" +culture_name + " " +legend)
     print(fitstartvals)
     print(results.summary())
     return results
@@ -170,25 +170,31 @@ def match_names(data_names, starting_list_index=0, name_matches=[]):
             index = data_names_copy[match[0]].index(data_names[matches[0][0]][matches[0][1]])
             data_names_copy[match[0]][index] = None
     #print(data_names_copy)
+    #name_list_matches = []
     for i, name1 in enumerate(data_names_copy[starting_list_index]):
         if name1 != None:
             name_match = [(starting_list_index, i)]
             for j, name_list in enumerate(data_names_copy[starting_list_index+1:]):
                 j = starting_list_index + 1+ j
                 for k, name2 in enumerate(name_list):
-                    if re.match(name1, name2):
+                    name1_edit = name1.rstrip().lstrip().lower()
+                    name2_edit = name2.rstrip().lstrip().lower()
+                    #name_list_matches.append((name1_edit, name2_edit))
+                    if name1_edit == name2_edit:
                         name_match.append((j, k))
+                        #print("Matched:" +  name1_edit  + " and "+  name2_edit + " \nIndexes: " + str(j)+ ", "+ str(k))
             #print(data_names_copy)
             #print(name_match)
             name_match = tuple(name_match)
             name_matches.append(name_match)
     starting_list_index += 1
+    #printl(name_list_matches)
     if starting_list_index < len(data_names):
         #print(name_matches)
         return match_names(data_names, starting_list_index, name_matches)
     else:
         name_matches = tuple(name_matches)
-        print(name_matches)
+        #printl(name_matches)
         return name_matches
     
 def prepdata_data_multexp(data_master, OD_norm_data):
@@ -210,10 +216,70 @@ def prepdata_data_multexp(data_master, OD_norm_data):
             data_master[i] = norm_data(data_master[i], data_total_pos[i], data_no_timepoints[i])
 
     return data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends
+
+def find_cult_list(data_names):
+
+    name_dict = {}
+    for i, data_list in enumerate(data_names):
+        #printl(data_list)
+        for j, name in enumerate(data_list):
+            og_name = name
+            name.lower().lstrip().rstrip()
+            if name in name_dict:
+                name_dict[name].append((i, j))
+            else:
+                name_dict[name] = [og_name, (i, j)]
+    culture_list = [value for key, value in name_dict.items()]
+    return culture_list
+
+def find_legend_list(data_legends):
+    legend_list = []
+    for i, legend in enumerate(data_legends):
+        for j, entry in enumerate(legend):
+            if legend not in legend_list:
+                legend_list.append([legend, (i, j)])
+            else:
+                legend_list.append((i, j))
+    return legend_list
+
+
+def sorting_dataframe(data_frame):
+    name_unique = []
+    sorted_df = pd.DataFrame()
+    data_frame = data_frame.sort_values(by=data_frame.columns[0])
+    name_list = data_frame.iloc[:, 0].tolist()
+    for i, name in enumerate(name_list):
+        if name not in [entry[0] for entry in name_unique]:
+            name_unique.append([name, i, 1])
+        else:
+            for inx, name2 in enumerate([entry[0] for entry in name_unique]):
+                if name == name2:
+                    inx_match = inx
+                    break
+            #print(name_unique)
+            #print(name_unique[inx_match][2])
+            name_unique[inx_match][2] = name_unique[inx_match][2] + 1
+
+    for name in name_unique:
+        endpoint = name[1] + name[2]
+        sliced_df = data_frame.iloc[name[1]:endpoint].copy()
+        label_list = sliced_df.iloc[:, 1].tolist()
+        for i, label in enumerate(label_list):
+            label_list[i] = float(label.lower().rstrip(" nm ").lstrip())
+        sliced_df['temp_column'] = label_list
+        sliced_df = sliced_df.sort_values(by='temp_column')
+        sliced_df = sliced_df.drop(columns='temp_column')
+        sorted_df = pd.concat([sorted_df, sliced_df], axis=0)
+    sorted_df = sorted_df.reset_index(drop=True)
+    #pd.set_option('display.max_columns', 100)
+    #print(sorted_df)
+    return sorted_df, name_unique
+
 ### Main
 def odplot():
     ## creates plots for each culture
     excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     for excel_path in excel_paths:
         print("\n\nData from "+ excel_path)
@@ -283,6 +349,7 @@ def odplot():
 def doublingtime():
     ## calculates doubling time for each culture
     excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     if use_fit != True:
         OD_exp_fit = False
@@ -295,12 +362,7 @@ def doublingtime():
     if len(excel_paths) > 1:
         OD_norm_data = True
     data_cong, data_lengths, data_times, data_names, data_legends, data_no_cultures, data_no_perculture, data_no_timepoints, data_total_pos, name_legend_matches, data_master, data_names_legends = prepdata_data_multexp(data_master, OD_norm_data=False)
-
-    #no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
-    #times = metadata_time(data, no_timepoints)
-    #names = metadata_names(data, total_pos, no_perculture)
-    #legend = metadata_legend(data, total_pos)
-    #data = cut_data(data)
+    #print(data_master))
     #print(data)
     #print(exp_names)
     results_master = []
@@ -321,8 +383,9 @@ def doublingtime():
                 #print(culturename, legend[j], average)
                 results.append([culturename, legend[j], average, data.iloc[j][0]])
         results = pd.DataFrame(results)
-        results.rename(columns={results.columns[0]: 'Culture', results.columns[1]: 'Hormone conc.', results.columns[2]: 'Doubling time', results.columns[3]: 'Starting OD'}, inplace=True)
-        saveexcel(results, os.path.join(os.path.dirname(excel_path), exp_names[masterindex]) + '_doublingtime_hardcalc.xlsx') 
+        results_save, unique_names = sorting_dataframe(results)
+        results_save.rename(columns={results_save.columns[0]: 'Culture', results_save.columns[1]: 'Hormone conc.', results_save.columns[2]: 'Doubling time', results_save.columns[3]: 'Starting OD'}, inplace=True)
+        saveexcel(results_save, os.path.join(os.path.dirname(excel_path), exp_names[masterindex]) + '_doublingtime_hardcalc.xlsx') 
         results_master.append(results)
     
     if use_fit == True:
@@ -347,14 +410,14 @@ def doublingtime():
                 #printl(len(results_master_avg[listindex]))
                 len(results_master_avg[listindex])
                 for j in range(len(results_master_avg[listindex])):
+                    data_part = data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip()
+                    res_part = results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip()
                     #print(listindex, entryindex, j)
-                    #print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
-                    #print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
-                    if data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip() == results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip():
-                        printl("found smth")
-                        print(listindex, entryindex)
-                        print(data_names_legends[listindex][entryindex].replace("$", "\$").lower().lstrip().rstrip())
-                        print(results_master_avg[listindex].iloc[j][0].lstrip().rstrip().lower() +"\$"+ results_master_avg[listindex].iloc[j][1].lower().lstrip().rstrip())
+                    #print(data_part, res_part)
+                    if data_part == res_part:
+                        #print("\n\nfound smth")
+                        #print(listindex, entryindex)
+                        #print(data_part, res_part)
                         pred_list.append(results_master_avg[listindex].iloc[entryindex][2])
             start = sum(start_list)/len(start_list)
             pred = sum(pred_list)/len(pred_list)
@@ -378,42 +441,94 @@ def doublingtime():
                 starting_OD_fit_err = result.bse[0]*start
             results_master.append([name_entry, legend_entry, D, starting_OD_fit, standard_error, starting_OD_fit_err])
         results_master = pd.DataFrame(results_master)
-        print(results_master)
         #print(results_master.shape[1])
         results_master.rename(columns={results_master.columns[0]: 'Culture', results_master.columns[1]: 'Hormone conc.', results_master.columns[2]: 'Doubling time', results_master.columns[3]:"Starting culture size from fit", results_master.columns[4]: "Confidence intervals 95% coeff", results_master.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
+        
+        results_master, unique_names = sorting_dataframe(results_master)
         saveexcel(results_master, os.path.join(os.path.dirname(excel_path), exp_name + '_doublingtime_fit.xlsx'))
-
-    colors = getcolormap(no_perculture)
-    width = 1/(no_perculture+1)
-    multiplier = 0.0
     fig2, ax2 = plt.subplots(layout="constrained")
-    index = np.arange(no_cultures)
+    #print(data_names)
+    #printl(sorted_results, pretty=True)
+    ##printing barchart
+    width = 1/(max([sublist[2] for sublist in unique_names])+1)    
     coordinates = []
-
-    for i, culturename in enumerate(names):
-        ###Plotting hormone conc vs doubling time
-        k = i * no_perculture
-        l = (i + 1) * no_perculture
-        for j in range(k, l, 1):
-            offset = width * multiplier   
-            ax2.bar(offset, results.iloc[j][2], label=results.iloc[j][1], width=width)
-            coordinates.append(offset)
+    coordinates_group = []
+    multiplier = 0
+    offset = 0
+    for i, cultureentry in enumerate(unique_names):
+        offset = width * multiplier
+        coordinates_group.append(offset)
+        endpoint = cultureentry[1] + cultureentry[2]
+        #print(cultureentry[0], cultureentry[1], endpoint)
+        sliced_df = results_master.iloc[cultureentry[1]:endpoint].copy()
+        #print(sliced_df)
+        sliced_df_list = sliced_df.values.tolist()
+        for j, result in enumerate(sliced_df_list):
+            #print(result)
+            offset = width * multiplier  
+            ax2.bar(offset, result[2], label=result[1], width=width)
             multiplier += 1
+            coordinates.append(offset)
         multiplier += 1
-        ###plotting fit
+    ax2.set_title("Hormone concentration vs doubling-time")
+    #print(unique_names)
+    coordinates_group = [entry + (width*(unique_names[i][2]-1))/2 for i, entry in enumerate(coordinates_group)]
+    ax2.set_xticks(coordinates_group)
+    ax2.set_xticklabels([sublist[0] for sublist in unique_names])
+    ax2.set_xlabel('Culture')
+    ax2.set_ylabel('Doubling time (h)')
+    ax2 =  labelreorg(ax2, find_custom_order=True)
+    if adderrorbars:
+        results_master_list = results_master.values.tolist()
+        for i, result in enumerate(results_master_list):
+            #print(coordinates[i], i, result)
+            ax2.errorbar(coordinates[i], result[2], yerr=result[4], capsize=4, color='black', ls="none")
+    ax2.grid(True)
+    fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeBarchart')
+    print("Saving bar-chart to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeBarchart.png'))
+    fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeBarchart.png'))
+    #print(data_master)
+    #printl(name_legend_matches, pretty=True)
+    ###plotting fit
+    name_leg_loc = []
+    for match in name_legend_matches:
+        for listindex, lineindex in match:
+            name_entry, legend_entry = re.split(r"\$", data_names_legends[listindex][lineindex], 1)
+            name_leg_loc.append((name_entry, legend_entry, listindex, lineindex))
+    #printl(name_leg_loc, pretty=True)
+    all_times = []
+    factor = 10
+    for times in data_times:
+        all_times += times
+    times_fit = [(1/factor) * point for point in range(factor*math.ceil(max(all_times)))]
+
+    for i, cultureentry in enumerate(unique_names):
+        exp_list = []
+        for entry in name_leg_loc:
+            name1 = entry[0].lower().rstrip().lstrip()
+            name2 = cultureentry[0].lower().rstrip().lstrip()
+            if name1 == name2:
+                exp_list.append(entry)
+        #printl(exp_list, pretty=True)
+        #printl(data_times, pretty=True)
         fig, ax = plt.subplots()
-        for j in range(i*no_perculture, (i+1)*no_perculture, 1):
-            ax.scatter(times, data.iloc[j], marker='x', label=results.iloc[j][1], color=colors[j-i*no_perculture])
+        for j, entry in enumerate(exp_list):
+            name_entry, legend_entry, listindex, lineindex = entry
+            ax.scatter(data_times[listindex], data_master[listindex].iloc[lineindex], marker='x', label=legend_entry)
+        for k in range(cultureentry[2]):
+            
+            j = cultureentry[1] + k
+            legend_entry = results_master.iloc[j][1]
             y = []
             y_upper = []
             y_lower = []
-            for time in times:
+            for time in times_fit:
                 if use_fit != True:
-                    y.append(calc_OD(time, results.iloc[j][2], results.iloc[j][3]))
+                    y.append(calc_OD(time, results_master.iloc[j][2], results_master.iloc[j][3]))
                 elif OD_exp_fit == True:
-                    y.append(2**(time/results.iloc[j][2]) * results.iloc[j][3])
+                    y.append(2**(time/results_master.iloc[j][2]) * results_master.iloc[j][3])
                     if adderrorbars:
-                        y_u, y_l = calcerrorslowerupper(calc_OD, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
+                        y_u, y_l = calcerrorslowerupper(calc_OD, time, (results_master.iloc[j][2], results_master.iloc[j][4]), (results_master.iloc[j][3], results_master.iloc[j][5]))
                         y_upper.append(y_u)
                         y_lower.append(y_l)
                         ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
@@ -421,44 +536,35 @@ def doublingtime():
                     #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
                     y.append(calc_OD_lin(time, results.iloc[j][2], results.iloc[j][3]))
                     if adderrorbars:
-                        y_u, y_l = calcerrorslowerupper(calc_OD_lin, time, (results.iloc[j][2], results.iloc[j][4]), (results.iloc[j][3], results.iloc[j][5]))
+                        y_u, y_l = calcerrorslowerupper(calc_OD_lin, time, (results_master.iloc[j][2], results_master.iloc[j][4]), (results_master.iloc[j][3], results_master.iloc[j][5]))
                         y_upper.append(y_u)
                         y_lower.append(y_l)
                 elif use_fit == True:
-                    y.append(results.iloc[j][2]*time +  results.iloc[j][3])
-            ax.plot(times, y, color=colors[j-i*no_perculture])
+                    y.append(results_master.iloc[j][2]*time +  results_master.iloc[j][3])
+            #print(legend_entry)
+            ax.plot(times_fit, y, label=legend_entry, color="red")
             if adderrorbars == True:
-                ax.fill_between(times, y_upper, y_lower, color=colors[j-i*no_perculture], alpha=0.3)
+                ax.fill_between(times_fit, y_upper, y_lower, label=legend_entry, alpha=0.3)
 
-        ax.set_title(culturename)
+        ax.set_title(cultureentry[0])
         ax.set_xlabel('Time (h)')
         if OD_norm_data == True:
             ax.set_ylabel('Normalized Optical Density')
         else:
             ax.set_ylabel('Optical Density')
         ax.set_yscale('log')
-        ax.legend()
         ax.grid(True)
+        ax.legend()
+        ax = labelreorg(ax, find_custom_order=True)
         if use_fit == True:
-            fig.canvas.manager.set_window_title(exp_name + '_' + culturename + '_fit')
-            #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_fit.png'))
+            fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0] + '_fit')
+            print("Saving"+ cultureentry[0] +"fit to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
+            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
         else:
-            fig.canvas.manager.set_window_title(exp_name + '_' + culturename+ '_basicfit')
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename + '_basicfit.png'))
+            fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0]+ '_basicfit')
+            print("Saving"+ cultureentry[0] +"fit to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
+            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_basicfit.png'))
 
     
-    ax2.set_title("Hormone concentration vs doubling-time")
-    ax2.set_xticks(index + (((no_perculture-1)/2)* width) )
-    ax2.set_xticklabels(names)
-    ax2.set_xlabel('Culture')
-    ax2.set_ylabel('Doubling time (h)')
 
-
-    ax2 = labelreorg(ax2)
-    if adderrorbars:
-        ax2.errorbar(coordinates, results.iloc[:,2], yerr=results.iloc[:,4], capsize=4, color='black', ls="none")
-    ax2.grid(True)
-    fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeHormConc')
-    fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeHormConc.png'))
     plt.show()
