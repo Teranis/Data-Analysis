@@ -60,13 +60,14 @@ def import_data_CC(path):
         vols[i] = (4/3)*math.pi*(vol)**(3)
     return vols, numbers
 
-def import_all_data_CC(path):
+def import_all_data_CC(paths, names):
     ## imports CC data from all files in a folder
     data = []
-    for file in os.listdir(path):
-        if file.endswith('Z2'):
-            vols, numbers = import_data_CC(os.path.join(path, file))
-            data.append([file, vols, numbers])
+    for i, path in enumerate(paths):
+        for file in os.listdir(path):
+            if file.endswith('Z2'):
+                vols, numbers = import_data_CC(os.path.join(path, file))
+                data.append([[path, names[i], file], vols, numbers])
     #print(data)
     return data
 
@@ -90,13 +91,13 @@ def edit_label_CC(label, culture_name):
 
 def match_name(name, entry, listforculture):
     ### matches name of culture to data, and stripping all the unnecessary stuff to only give the horm conc afte
-    if type(entry[0]) != float:
-        if re.match('^.*=?('+name+')', entry[0]):
-            entry[0] = entry[0].lstrip(name)
-            entry[0] = entry[0].lstrip("_")
-            entry[0] = entry[0].rstrip("nM_2")
-            entry[0] = entry[0].replace("_", ".")
-            entry[0] = float(entry[0])
+    if type(entry) != float:
+        if re.match('^.*=?('+name+')', entry):
+            entry = entry.lstrip(name)
+            entry = entry.lstrip("_")
+            entry = entry.rstrip("nM_2")
+            entry = entry.replace("_", ".")
+            entry = float(entry)
             listforculture.append(entry)
     return listforculture
 
@@ -179,7 +180,7 @@ def fit(x, y, what):
     print(sigma, mean, C)
     param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[C,mean,sigma])
     #print fit Gaussian parameters
-    print("\nFit parameters of " + what + ": ")
+    print("\nFit parameters of " + what[2] + " from exp. " + what[1] + ": ")
     print("C = ", param_optimised[0], "+-",np.sqrt(param_covariance_matrix[0,0]))
     print("X_mean =", param_optimised[1], "+-",np.sqrt(param_covariance_matrix[1,1]))
     print("sigma = ", param_optimised[2], "+-",np.sqrt(param_covariance_matrix[2,2]))
@@ -212,18 +213,19 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names):
         for j in range(1, 4):
             result_master_int[i][j] = str(result_master_int[i][j][0]) + "+-" + str(result_master_int[i][j][1])
     result_master_sorted = []
-    for name in culture_names:
-        listforculture = []
-        #print(result_master_int)
-        for entry in result_master_int:
-            listforculture = match_name(name, entry, listforculture)
-        sorted_list = []
-        sorted_list2 = []
-        sorted_list = sorted(listforculture, key=lambda x: x[0])
-        for entry in sorted_list:
-            entry[0] = name + "_" + str(entry[0]) + "nM"
-            sorted_list2.append(entry)
-        result_master_sorted += sorted_list2
+    #for name in culture_names:
+    #    listforculture = []
+    #    #print(result_master_int)
+    #    for entry in result_master_int:
+    #        listforculture = match_name(name, entry[0][2], listforculture)
+    #    sorted_list = []
+    #    sorted_list2 = []
+    #    print(listforculture)
+    #    sorted_list = sorted(listforculture, key=lambda x: x[0])
+    #    for entry in sorted_list:
+    #        entry[0] = name + "_" + str(entry[0]) + "nM"
+    #        sorted_list2.append(entry)
+    #    result_master_sorted += sorted_list2
     ###
     func_column = ["C*exp(-(X-X_mean)**2/(2*sigma**2))"] + [None]*(len(result_master_sorted)-1) ###change this to the function from gaus()
     result_master = pd.DataFrame(result_master_sorted)
@@ -234,24 +236,24 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names):
 
 ### main
 def plotfitdata():
-    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
     CC_norm_data = True
-    data = import_all_data_CC(CC_path)
+    data = import_all_data_CC(CC_paths, CC_exp_names)
     data = norm_data_cc(data, CC_norm_data)
     result_master = []
     for entry in data:
-        entry[0] = entry[0].rstrip(".=#Z2")
+        entry[0][2] = entry[0][2].rstrip(".=#Z2")
         param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
         result = [entry[0]]
         for i in range(3):
             result.append([param_optimised[i], param_covariance_matrix[i,i]])
         result_master.append(result)
-    savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names)
+    savexlsxfit_CC(result_master, savepath, exp_name_master, culture_names)
     ihatehowlistswork = []
     for name in culture_names:
         listforculture = []
         for entry in result_master:
-            listforculture = match_name(name, entry, listforculture)
+            listforculture = match_name(name, entry[0][2], listforculture)
 
         fig, ax = plt.subplots()
         ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture])
@@ -290,15 +292,15 @@ def plotfitdata():
     plt.show()
 
 def boxplot():
-    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
-    data = import_all_data_CC(CC_path)
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    data = import_all_data_CC(CC_paths, CC_exp_names)
     #data = norm_data_cc(data, CC_norm_data)
     for entry in data:
         entry[0] = entry[0].rstrip(".=#Z2")
     for name in culture_names:
         listforculture = []
         for entry in data:
-            listforculture = match_name(name, entry, listforculture)
+            listforculture = match_name(name, entry[0][2], listforculture)
         data_weighted_master = []
         for entry in listforculture:
             expanded_data = []
@@ -319,8 +321,8 @@ def boxplot():
 
 def coultercounter():
     ## creates CC plots for each exp separately cumulatively
-    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
-    data = import_all_data_CC(CC_path)
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    data = import_all_data_CC(CC_paths, CC_exp_names)
     data = norm_data_cc(data, CC_norm_data)
     result_master = []
     for entry in data:
@@ -355,8 +357,8 @@ def coultercounter():
 
 def coulterocunter_together():
     ## creates CC plots for cultures together cumulatively
-    CC_path, CC_exp_name, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit = importconfigCC()
-    data = import_all_data_CC(CC_path)
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    data = import_all_data_CC(CC_paths, CC_exp_names)
     data = norm_data_cc(data, CC_norm_data)
     result_master_excel = []
     result_master_fit = []

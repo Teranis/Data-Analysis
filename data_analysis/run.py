@@ -4,7 +4,7 @@ import CC
 
 print('Running Data Analysis')
     
-OD.doublingtime()
+CC.plotfitdata()
 
 ####Possible commands
 ##CC
