@@ -4,7 +4,7 @@ import CC
 
 print('Running Data Analysis')
     
-CC.plotfitdata()
+CC.boxplot()
 
 ####Possible commands
 ##CC

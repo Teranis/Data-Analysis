@@ -19,7 +19,7 @@ from configload import importconfigCC
 import copy
 import matplotlib.cbook
 
-from data_analysis.core import sorting_dataframe
+#from data_analysis.core import sorting_dataframe
 #import seaborn as sns
 ### small
 def import_data_CC(path):
@@ -255,7 +255,7 @@ def plotfitdata():
     result_master = pd.DataFrame(result_master)
     result_master.columns = ['name', 'C', 'X_mean', 'sigma']
     result_master, unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True)
-    printl(unique_entries)
+    #printl(unique_entries)
     fig2, ax2 = plt.subplots()
     for name, start, leng in unique_entries:
         fig, ax = plt.subplots()
@@ -291,25 +291,37 @@ def boxplot():
     data = import_all_data_CC(CC_paths, CC_exp_names)
     #data = norm_data_cc(data, CC_norm_data)
     for entry in data:
-        entry[0] = entry[0].rstrip(".=#Z2")
-    for name in culture_names:
-        listforculture = []
-        for entry in data:
-            listforculture = match_name(name, entry[0][2], listforculture)
-        data_weighted_master = []
-        for entry in listforculture:
-            expanded_data = []
-            for i, _ in enumerate(entry[1]):
-                expanded_data += [entry[1][i]] * entry[2][i]
-            data_weighted_master.append([entry[0], expanded_data])
+        entry[0] = entry[0][2].rstrip(".=#Z2")
+    data = pd.DataFrame(data)
+    data.columns = ['name', 'vols', 'numbers']
+    data, unique_entries, unique_entries_detailed = sorting_dataframe(data, split_name_label=True, create_beaty=True, precise_unique=True)
+    #printl(data)
+    #printl(data['numbers'][1])
+    data_weighted_master = []
+    for detailname, start, leng in unique_entries_detailed:
+        label = detailname.split("$&$", 1)[1]
+        label = float(re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", label)[0])
+        name = data['name'][start]
+        expanded_data = []
+        end = start + leng
+        for i in range(start, end, 1):
+            for j, _ in enumerate(data['numbers'][i]):
+                expanded_data += [data['vols'][i][j]] * data['numbers'][i][j]
+        data_weighted_master.append([name, label, expanded_data])
+    #printl(data, pdnomax=True)
+    for name, start, leng in unique_entries:
+        cult_list = []
+        for entry in data_weighted_master:
+            if entry[0] == name:
+                cult_list.append(entry)
         fig, ax = plt.subplots()
-        ax.boxplot([sublist [1] for sublist in data_weighted_master], positions=[sublist [0] for sublist in data_weighted_master], showfliers=False)
+        ax.boxplot([sublist[2] for sublist in cult_list], positions=[sublist[1] for sublist in cult_list], showfliers=False)
         ax.grid(True)
         ax.set_ylabel('Volume (fL)')
         ax.set_xlabel("Hormone concentration (nM)")
         ax.set_title(name+ " Cell Size")
-        fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize_Boxplot_' + name)
-        save_path = os.path.join(CC_path, CC_exp_name + '_CellSize_Boxplot_' + name + '.png')
+        fig.canvas.manager.set_window_title(exp_name_master + '_CellSize_Boxplot_' + name)
+        save_path = os.path.join(savepath, exp_name_master + '_CellSize_Boxplot_' + name + '.png')
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
     plt.show()

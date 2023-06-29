@@ -175,7 +175,21 @@ def calcerrorslowerupper(func, x, *args):
             y_max.append(max(ys))
         return y_max, y_min
 
-def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False):
+def create_uniques_list(name_list):
+    name_unique = []
+    for i, name in enumerate(name_list):
+        if name not in [entry[0] for entry in name_unique]:
+            name_unique.append([name, i, 1])
+        else:
+            for inx, name2 in enumerate([entry[0] for entry in name_unique]):
+                if name == name2:
+                    inx_match = inx
+                    break
+            name_unique[inx_match][2] = name_unique[inx_match][2] + 1
+    return name_unique
+
+
+def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False, precise_unique=False):
     if split_name_label == True:
         singlename, labels = [], []
         for name in data_frame.iloc[:, 0].tolist():
@@ -189,22 +203,17 @@ def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False):
             singlename.append(name1)
         data_frame.insert(1, 'labels', labels)
         data_frame.iloc[:, 0] = singlename
-    name_unique = []
+
     sorted_df = pd.DataFrame()
     data_frame = data_frame.sort_values(by=data_frame.columns[0])
-    name_list = data_frame.iloc[:, 0].tolist()
-    for i, name in enumerate(name_list):
-        if name not in [entry[0] for entry in name_unique]:
-            name_unique.append([name, i, 1])
-        else:
-            for inx, name2 in enumerate([entry[0] for entry in name_unique]):
-                if name == name2:
-                    inx_match = inx
-                    break
-            #print(name_unique)
-            #print(name_unique[inx_match][2])
-            name_unique[inx_match][2] = name_unique[inx_match][2] + 1
 
+    name_list = data_frame.iloc[:, 0].tolist()
+    label_list = data_frame.iloc[:, 1].tolist()
+    name_unique = create_uniques_list(name_list)
+    if precise_unique == True:
+        name_label_list = [str(name) +"$&$"+ str(label) for name, label in zip(name_list, label_list)]
+        namelabel_unique = create_uniques_list(name_label_list)
+   
     for name in name_unique:
         endpoint = name[1] + name[2]
         sliced_df = data_frame.iloc[name[1]:endpoint].copy()
@@ -218,7 +227,10 @@ def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False):
     sorted_df = sorted_df.reset_index(drop=True)
     #pd.set_option('display.max_columns', 100)
     #print(sorted_df)
-    return sorted_df, name_unique
+    if precise_unique == False:
+        return sorted_df, name_unique
+    elif precise_unique == True:
+        return sorted_df, name_unique, namelabel_unique
 
 def printl(*objects, pretty=False, is_decorator=False, **kwargs):
     # Copy current stdout, reset to default __stdout__ and then restore current
@@ -233,6 +245,16 @@ def printl(*objects, pretty=False, is_decorator=False, **kwargs):
     filpath = callingframe_info.filename
     filename = os.path.basename(filpath)
     print_func = pprint if pretty else print
+    if "pdnomax" in kwargs:
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', None)
+        del kwargs["pdnomax"]
+    if "pdrowmax" in kwargs:
+        pd.set_option('display.max_rows', kwargs["pdrowmax"])
+        del kwargs["pdrowmax"]
+    if "pdcolmax" in kwargs:
+        pd.set_option('display.max_columns', kwargs["pdcolmax"])
+        del kwargs["pdcolmax"]
     print('*'*30)
     print(f'{timestap} - File "{filename}", line {callingframe_info.lineno}:')
     if 'sep' not in kwargs:
@@ -242,4 +264,6 @@ def printl(*objects, pretty=False, is_decorator=False, **kwargs):
     print_func(*objects, **kwargs)
     print('='*30)
     sys.stdout = current_stdout
+    pd.reset_option('display.max_rows')
+    pd.reset_option('display.max_columns')
 ###I WILL SUBJUGATE MATPLOTLIB
