@@ -7,7 +7,7 @@ import datetime
 import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
-from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper, printl
+from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper, printl, sorting_dataframe
 from core import loadexcel as import_data_OD
 import regex as re
 import copy
@@ -241,39 +241,6 @@ def find_legend_list(data_legends):
             else:
                 legend_list.append((i, j))
     return legend_list
-
-
-def sorting_dataframe(data_frame):
-    name_unique = []
-    sorted_df = pd.DataFrame()
-    data_frame = data_frame.sort_values(by=data_frame.columns[0])
-    name_list = data_frame.iloc[:, 0].tolist()
-    for i, name in enumerate(name_list):
-        if name not in [entry[0] for entry in name_unique]:
-            name_unique.append([name, i, 1])
-        else:
-            for inx, name2 in enumerate([entry[0] for entry in name_unique]):
-                if name == name2:
-                    inx_match = inx
-                    break
-            #print(name_unique)
-            #print(name_unique[inx_match][2])
-            name_unique[inx_match][2] = name_unique[inx_match][2] + 1
-
-    for name in name_unique:
-        endpoint = name[1] + name[2]
-        sliced_df = data_frame.iloc[name[1]:endpoint].copy()
-        label_list = sliced_df.iloc[:, 1].tolist()
-        for i, label in enumerate(label_list):
-            label_list[i] = float(label.lower().rstrip(" nm ").lstrip())
-        sliced_df['temp_column'] = label_list
-        sliced_df = sliced_df.sort_values(by='temp_column')
-        sliced_df = sliced_df.drop(columns='temp_column')
-        sorted_df = pd.concat([sorted_df, sliced_df], axis=0)
-    sorted_df = sorted_df.reset_index(drop=True)
-    #pd.set_option('display.max_columns', 100)
-    #print(sorted_df)
-    return sorted_df, name_unique
 
 ### Main
 def odplot():

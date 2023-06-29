@@ -14,10 +14,12 @@ import operator
 #from data_analysis.configload import importconfigCC
 #from data_analysis.core import sort_labels as sort_labels_CC
 from core import sort_labels as sort_labels_CC
-from core import labelreorg, getcolormap, saveexcel
+from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl
 from configload import importconfigCC
 import copy
 import matplotlib.cbook
+
+from data_analysis.core import sorting_dataframe
 #import seaborn as sns
 ### small
 def import_data_CC(path):
@@ -205,14 +207,14 @@ def pltfit(ax, x, CC_culm, param_optimised, param_covariance_matrix, label="", c
     return ax
 
 
-def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names):
+def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name):
     ###
     result_master_int = copy.deepcopy(result_master_ext)
     #print(result_master_int)
     for i, _ in enumerate(result_master_int):
         for j in range(1, 4):
             result_master_int[i][j] = str(result_master_int[i][j][0]) + "+-" + str(result_master_int[i][j][1])
-    result_master_sorted = []
+    #result_master_sorted = []
     #for name in culture_names:
     #    listforculture = []
     #    #print(result_master_int)
@@ -226,11 +228,12 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name, culture_names):
     #        entry[0] = name + "_" + str(entry[0]) + "nM"
     #        sorted_list2.append(entry)
     #    result_master_sorted += sorted_list2
-    ###
-    func_column = ["C*exp(-(X-X_mean)**2/(2*sigma**2))"] + [None]*(len(result_master_sorted)-1) ###change this to the function from gaus()
-    result_master = pd.DataFrame(result_master_sorted)
+    result_master = pd.DataFrame(result_master_int)
+    result_master.columns = ['name', 'C', 'X_mean', 'sigma']
+    result_master, unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True)
+    func_column = ["C*exp(-(X-X_mean)**2/(2*sigma**2))"] + [None]*(len(result_master_int)-1) ###change this to the function from gaus()
+    
     result_master['function'] = func_column
-    result_master.columns = ['name', 'C', 'X_mean', 'sigma', 'function']
     saveexcel(result_master, os.path.join(CC_path, CC_exp_name) + '_fit.xlsx')
 
 
@@ -242,21 +245,23 @@ def plotfitdata():
     data = norm_data_cc(data, CC_norm_data)
     result_master = []
     for entry in data:
-        entry[0][2] = entry[0][2].rstrip(".=#Z2")
+        entry[0][2] = entry[0][2].rstrip("_.=#Z2")
         param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
-        result = [entry[0]]
+        result = [entry[0][2]]
         for i in range(3):
             result.append([param_optimised[i], param_covariance_matrix[i,i]])
         result_master.append(result)
-    savexlsxfit_CC(result_master, savepath, exp_name_master, culture_names)
-    ihatehowlistswork = []
-    for name in culture_names:
-        listforculture = []
-        for entry in result_master:
-            listforculture = match_name(name, entry[0][2], listforculture)
-
+    savexlsxfit_CC(result_master, savepath, exp_name_master)
+    result_master = pd.DataFrame(result_master)
+    result_master.columns = ['name', 'C', 'X_mean', 'sigma']
+    result_master, unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True)
+    printl(unique_entries)
+    fig2, ax2 = plt.subplots()
+    for name, start, leng in unique_entries:
         fig, ax = plt.subplots()
-        ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture])
+        endpoint = start + leng
+        listforculture = result_master.iloc[start:endpoint,:].values.tolist()
+        ax.scatter(x=[sublist[1] for sublist in listforculture], y=[sublist[3][0] for sublist in listforculture])
         #print([sublist[2][0] for sublist in listforculture])
         #ax.errorbar(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], yerr=[sublist[3][0] for sublist in listforculture], fmt='none', capsize=4)
         #print([sublist[3][0] for sublist in listforculture])
@@ -264,29 +269,19 @@ def plotfitdata():
         ax.set_title(name+ " Fit results")
         ax.set_ylabel('Volume (fL)')
         ax.set_xlabel("Hormone concentration (nM)")
-        fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize_' + name)
-        save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize_' + name + '.png'
+        fig.canvas.manager.set_window_title(exp_name_master + '_CellSize_' + name)
+        save_path = os.path.join(savepath, exp_name_master) + '_CellSize_' + name + '.png'
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
-        listforculture = [str(name)] + listforculture
-        ihatehowlistswork.append(listforculture)
-
-    fig, ax = plt.subplots()
-    
-    for listforculture in ihatehowlistswork:
-        label = listforculture[0]
-        del listforculture[0]
-        #print([sublist[1] for sublist in listforculture])
-        #print([sublist[2][0] for sublist in listforculture])
-        ax.scatter(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], label=label)
-    ax.grid(True)
-    ax.set_title("Fit")
-    ax.set_ylabel('Volume (fL)')
-    ax.set_xlabel("Hormone concentration (nM)")
-    ax.legend()
-    fig.canvas.manager.set_window_title(CC_exp_name + '_CellSize')
-    save_path = os.path.join(CC_path, CC_exp_name) + '_CellSize.png'
-    fig.savefig(save_path)
+        ax2.scatter(x=[sublist[1] for sublist in listforculture], y=[sublist[3][0] for sublist in listforculture], label=name)
+    ax2.grid(True)
+    ax2.set_title("Fit")
+    ax2.set_ylabel('Volume (fL)')
+    ax2.set_xlabel("Hormone concentration (nM)")
+    ax2.legend()
+    fig2.canvas.manager.set_window_title(exp_name_master + '_CellSize')
+    save_path = os.path.join(savepath, exp_name_master) + '_CellSize.png'
+    fig2.savefig(save_path)
     print('Saved plot to ' + save_path)
 
     plt.show()

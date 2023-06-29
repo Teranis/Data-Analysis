@@ -175,6 +175,50 @@ def calcerrorslowerupper(func, x, *args):
             y_max.append(max(ys))
         return y_max, y_min
 
+def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False):
+    if split_name_label == True:
+        singlename, labels = [], []
+        for name in data_frame.iloc[:, 0].tolist():
+            if create_beaty == True:
+                name = name.lstrip().rstrip().lstrip("_").rstrip("_")
+            name1, label1 = name.split('_', 1)
+            if create_beaty == True:
+                name1 = name1.lstrip().rstrip().lstrip("_").rstrip("_")
+                label1 = label1.rstrip().lstrip("_").rstrip("_").replace("_", ".").replace("nM", " nM")
+            labels.append(label1)
+            singlename.append(name1)
+        data_frame.insert(1, 'labels', labels)
+        data_frame.iloc[:, 0] = singlename
+    name_unique = []
+    sorted_df = pd.DataFrame()
+    data_frame = data_frame.sort_values(by=data_frame.columns[0])
+    name_list = data_frame.iloc[:, 0].tolist()
+    for i, name in enumerate(name_list):
+        if name not in [entry[0] for entry in name_unique]:
+            name_unique.append([name, i, 1])
+        else:
+            for inx, name2 in enumerate([entry[0] for entry in name_unique]):
+                if name == name2:
+                    inx_match = inx
+                    break
+            #print(name_unique)
+            #print(name_unique[inx_match][2])
+            name_unique[inx_match][2] = name_unique[inx_match][2] + 1
+
+    for name in name_unique:
+        endpoint = name[1] + name[2]
+        sliced_df = data_frame.iloc[name[1]:endpoint].copy()
+        label_list = sliced_df.iloc[:, 1].tolist()
+        for i, label in enumerate(label_list):
+            label_list[i] = float(re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", label)[0])
+        sliced_df['temp_column'] = label_list
+        sliced_df = sliced_df.sort_values(by='temp_column')
+        sliced_df = sliced_df.drop(columns='temp_column')
+        sorted_df = pd.concat([sorted_df, sliced_df], axis=0)
+    sorted_df = sorted_df.reset_index(drop=True)
+    #pd.set_option('display.max_columns', 100)
+    #print(sorted_df)
+    return sorted_df, name_unique
 
 def printl(*objects, pretty=False, is_decorator=False, **kwargs):
     # Copy current stdout, reset to default __stdout__ and then restore current
