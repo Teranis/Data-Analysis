@@ -1,5 +1,5 @@
 {
-  "CC_path": [ "C:\\Users\\timon\\Documents\\Randomshit\\2023_05_26_ASY071_ASY073_ASY075" ],
+  "CC_path": [ "H:\\Timon\\notes\\CC\\2023_05_26_ASY071_ASY073_ASY075" ],
   "CC_exp_name": [ "Hormone_26_5_23" ],
   "CC_culture_names": [ "ASY071-1", "ASY073-1", "ASY075-1" ],
   "CC_custom_order": [],
@@ -7,5 +7,7 @@
   "CC_culm": false,
   "CC_fit": true,
   "save_path": "",
-  "exp_name_master": ""
+  "exp_name_master": "",
+  "plot_together": true,
+  "scatter": false
 }

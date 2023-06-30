@@ -14,11 +14,11 @@ import operator
 #from data_analysis.configload import importconfigCC
 #from data_analysis.core import sort_labels as sort_labels_CC
 from core import sort_labels as sort_labels_CC
-from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl
+from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl, calcerrorslowerupper
 from configload import importconfigCC
 import copy
 import matplotlib.cbook
-
+from itertools import chain
 #from data_analysis.core import sorting_dataframe
 #import seaborn as sns
 ### small
@@ -74,7 +74,7 @@ def import_all_data_CC(paths, names):
     return data
 
 def calcbarsize(data):
-    return max(data[1])/len(data[1])
+    return max(data[2])/len(data[2])
 
 def norm_data_cc(data, CC_norm_data):
     if CC_norm_data:
@@ -104,11 +104,15 @@ def match_name(name, entry, listforculture):
     return listforculture
 
 
-def plot_CC(entry, fig=None, ax=None):
-    if not fig or not ax:
-        fig, ax = plt.subplots()
+def plot_CC(entry, label, fig=None, ax=None, scatter=True):
+    #if not fig or not ax:
+    #    fig, ax = plt.subplots()
     ## plots CC data
-    ax.bar(entry[1], entry[2], color="blue", alpha=0.7, width=calcbarsize(entry))
+    if scatter == True:
+        ax.scatter(entry[2], entry[3], color="blue", alpha=0.7, label=label, s=4)
+    else:
+        labels = [label]*len(entry[2])
+        ax.bar(entry[2], entry[3], color="blue", alpha=0.7, width=calcbarsize(entry), label=labels)
     return fig, ax
 
 def plot_together_CC(data, culture_name, fig=None, ax=None):
@@ -157,23 +161,23 @@ def gauslistcum(xlist, C, X_mean, sigma):
         ylist[i] = ylist[i] + ylist[i-1]
     return ylist
 
-def errorgauslist(xlist, param_optimised, param_covariance_matrix, lowerupper, cummu):
-    ylists = []
-    for pm1 in [operator.pos, operator.neg]:
-        for pm2 in [operator.pos, operator.neg]:
-            for pm3 in [operator.pos, operator.neg]:
-                if cummu != True:
-                    ylists.append(gauslist(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
-                elif cummu == True:
-                    ylists.append(gauslistcum(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
-    ylist_master = []
-    ylists = list(zip(*ylists))
-    for ylistentry in ylists:
-        if lowerupper == 'lower':
-            ylist_master.append(min(ylistentry))
-        elif lowerupper == 'upper':
-            ylist_master.append(max(ylistentry))
-    return ylist_master
+#def errorgauslist(xlist, param_optimised, param_covariance_matrix, lowerupper, cummu):
+#    ylists = []
+#    for pm1 in [operator.pos, operator.neg]:
+#        for pm2 in [operator.pos, operator.neg]:
+#            for pm3 in [operator.pos, operator.neg]:
+#                if cummu != True:
+#                    ylists.append(gauslist(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
+#                elif cummu == True:
+#                    ylists.append(gauslistcum(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
+#    ylist_master = []
+#    ylists = list(zip(*ylists))
+#    for ylistentry in ylists:
+#        if lowerupper == 'lower':
+#            ylist_master.append(min(ylistentry))
+#        elif lowerupper == 'upper':
+#            ylist_master.append(max(ylistentry))
+#    return ylist_master
 
 def fit(x, y, what):
     mean = np.average(x, weights=y)               
@@ -189,21 +193,16 @@ def fit(x, y, what):
 
     return param_optimised, param_covariance_matrix
 
-def pltfit(ax, x, CC_culm, param_optimised, param_covariance_matrix, label="", color="orange"):
-    if label != "":
-        label = label + " fit"
-    else:
-        label = "Fit"
+def pltfit(ax, x, CC_culm, param_optimised, param_covariance, label, color="orange"):
+
     if CC_culm != True:
         ax.plot(x, gauslist(x, param_optimised[0], param_optimised[1], param_optimised[2]), label=label, color=color)
-        y_upper = errorgauslist(x, param_optimised, param_covariance_matrix, 'upper', False)
-        y_lower = errorgauslist(x, param_optimised, param_covariance_matrix, 'lower', False)
-        ax.fill_between(x, y_upper, y_lower, color=color, alpha=0.3)
+        y_upper, y_lower = calcerrorslowerupper(gaus, x, (param_optimised[0], param_covariance[0]), (param_optimised[1], param_covariance[1]), (param_optimised[2], param_covariance[2]), cum=CC_culm)
+        ax.fill_between(x, y_upper, y_lower, color=color, alpha=0.3, label=label)
     else:
         ax.plot(x, gauslistcum(x, param_optimised[0], param_optimised[1], param_optimised[2]), label=label, color=color)
-        y_upper = errorgauslist(x, param_optimised, param_covariance_matrix, 'upper', True)
-        y_lower = errorgauslist(x, param_optimised, param_covariance_matrix, 'lower', True)
-        ax.fill_between(x, y_upper, y_lower, color="orange", alpha=0.3)
+        y_upper, y_lower = calcerrorslowerupper(gaus, x, (param_optimised[0], param_covariance[0]), (param_optimised[1], param_covariance[1]), (param_optimised[2], param_covariance[2]), cum=CC_culm)
+        ax.fill_between(x, y_upper, y_lower, color=color, alpha=0.3, label=label)
     return ax
 
 
@@ -239,7 +238,7 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name):
 
 ### main
 def plotfitdata():
-    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master, plot_together, scatter = importconfigCC()
     CC_norm_data = True
     data = import_all_data_CC(CC_paths, CC_exp_names)
     data = norm_data_cc(data, CC_norm_data)
@@ -279,15 +278,17 @@ def plotfitdata():
     ax2.set_ylabel('Volume (fL)')
     ax2.set_xlabel("Hormone concentration (nM)")
     ax2.legend()
+    name = name.replace(" ", "_").replace(".", "_")
     fig2.canvas.manager.set_window_title(exp_name_master + '_CellSize')
     save_path = os.path.join(savepath, exp_name_master) + '_CellSize.png'
+    save_path = save_path.replace(" ", "_")
     fig2.savefig(save_path)
     print('Saved plot to ' + save_path)
 
     plt.show()
 
 def boxplot():
-    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master, plot_together, scatter = importconfigCC()
     data = import_all_data_CC(CC_paths, CC_exp_names)
     #data = norm_data_cc(data, CC_norm_data)
     for entry in data:
@@ -299,7 +300,7 @@ def boxplot():
     #printl(data['numbers'][1])
     data_weighted_master = []
     for detailname, start, leng in unique_entries_detailed:
-        label = detailname.split("$&$", 1)[1]
+        label = detailname[1]
         label = float(re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", label)[0])
         name = data['name'][start]
         expanded_data = []
@@ -320,6 +321,7 @@ def boxplot():
         ax.set_ylabel('Volume (fL)')
         ax.set_xlabel("Hormone concentration (nM)")
         ax.set_title(name+ " Cell Size")
+        name = name.replace(" ", "_").replace(".", "_")
         fig.canvas.manager.set_window_title(exp_name_master + '_CellSize_Boxplot_' + name)
         save_path = os.path.join(savepath, exp_name_master + '_CellSize_Boxplot_' + name + '.png')
         fig.savefig(save_path)
@@ -327,93 +329,101 @@ def boxplot():
     plt.show()
 
 def coultercounter():
-    ## creates CC plots for each exp separately cumulatively
-    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
+    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master, plot_together, scatter = importconfigCC()
     data = import_all_data_CC(CC_paths, CC_exp_names)
     data = norm_data_cc(data, CC_norm_data)
-    result_master = []
     for entry in data:
-        entry[0] = entry[0].rstrip(".=#Z2")
-        if CC_fit == True:
+        entry[0][2] = entry[0][2].rstrip("_.=#Z2")
+    data_dataframe = pd.DataFrame(data)
+    data_dataframe.columns = ['Name', 'Size', 'Number']
+    data_dataframe['Name'] = data_dataframe['Name'].apply(lambda x: x[2])
+    data_dataframe, unique_entries, precise_unique_entries = sorting_dataframe(data_dataframe, split_name_label=True, create_beaty=True, precise_unique=True)
+    #data_dataframe['Number'] = data_dataframe['Number'].astype(int)
+    #printl(data_dataframe, pdnomax=True)
+    if CC_fit == True:
+        result_master = []
+        for entry in data:
             param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
-            result = [entry[0]]
+            result = [entry[0][2]]
             for i in range(3):
                 result.append([param_optimised[i], param_covariance_matrix[i,i]])
             result_master.append(result)
-        if CC_culm == True:
-            for i, _ in enumerate(entry[2][1:], start=1):
-                entry[2][i] = entry[2][i] + entry[2][i-1]
-        fig, ax = plot_CC(entry)
-        if CC_fit == True:
-            ax = pltfit(ax, entry[1], CC_culm, param_optimised, param_covariance_matrix)
-            
-        ax.set_title(entry[0])
-        ax.set_xlabel('Volume (fL)')
-        if CC_norm_data == True:
-            ax.set_ylabel('Fraction of cells')
-        else:
-            ax.set_ylabel('Number of cells')
-        ax.grid(True)
-        fig.canvas.manager.set_window_title(CC_exp_name + '_' + entry[0])
-        save_path = os.path.join(CC_path, CC_exp_name) + '_' + entry[0] + '.png'
-        fig.savefig(save_path)
-        print('Saved plot to ' + save_path)
-    if CC_fit == True:
-        savexlsxfit_CC(result_master, CC_path, CC_exp_name, culture_names)
-    plt.show()
+        savexlsxfit_CC(result_master, savepath, exp_name_master)
+        result_master = pd.DataFrame(result_master)
+        result_master.columns = ['name', 'C', 'X_mean', 'sigma']
+        result_master, unique_entries, precise_unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True, precise_unique=True)
+    #printl(precise_unique_entries)
+    for name, start, leng in unique_entries if plot_together==True else precise_unique_entries:
+        endpoint = start + leng
+        listforculture = result_master.iloc[start:endpoint,:].values.tolist()
+        listforculturedata = data_dataframe.iloc[start:endpoint,:].values.tolist()
 
-def coulterocunter_together():
-    ## creates CC plots for cultures together cumulatively
-    CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master = importconfigCC()
-    data = import_all_data_CC(CC_paths, CC_exp_names)
-    data = norm_data_cc(data, CC_norm_data)
-    result_master_excel = []
-    result_master_fit = []
-    for i, entry in enumerate(data):
-        data[i][0] = entry[0].rstrip(".=#Z2")
-        data[i] = [entry[0], entry[1], entry[2], i]
-        if CC_fit == True:
-            param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
-            result = [entry[0]]
-            for j in range(3):
-                result.append([param_optimised[j], param_covariance_matrix[j,j]])
-            result_master_excel.append(result)
-            result_plot = [entry[0]]
-            result_plot.append(param_optimised)
-            result_plot.append(param_covariance_matrix)
-            result_plot.append(i)
-            result_master_fit.append(result_plot)
-
-    if CC_culm == True:
-        for entry in data:
-            for i, _ in enumerate(entry[2][1:], start=1):
-                entry[2][i] = entry[2][i] + entry[2][i-1]
-    for culture_name in culture_names:
         fig, ax = plt.subplots()
-        if CC_fit != True:
-            fig, ax = plot_together_CC(data, culture_name, fig, ax)
-            ax.legend()
-            ax = sort_labels_CC(ax, custom_order)
+        for i, entry in enumerate(listforculture):
+            label = entry[1]
+            if plot_together != True:
+               label = ""
+            #printl(label)
+            fig, ax = plot_CC(listforculturedata[i], label, fig, ax, scatter)
+            precise_list = []
+            if CC_fit == True:
+                mean_fitres = []
+                if plot_together == True:
+                    for bentry in precise_unique_entries:
+                        if name == bentry[0][0]:
+                            precise_list.append(bentry)
+                    #printl(precise_list)
+                    for namep, startp, lengp in precise_list:
+                        endp = startp + lengp
+                        listforculture = result_master.iloc[startp:endp,:].values.tolist()
+                        #printl(listforculture)
+                        Cs = []
+                        Cserr = []
+                        X_means = []
+                        X_meanserr = []
+                        sigs = []
+                        sigserr = []
+                        for sublist in listforculture:
+                            Cs.append(sublist[2][0])
+                            Cserr.append(sublist[2][1])
+                            X_means.append(sublist[3][0])
+                            X_meanserr.append(sublist[3][0])
+                            sigs.append(sublist[4][0])
+                            sigserr.append(sublist[4][0])
+                        C = sum(Cs)/len(Cs)
+                        X_mean = sum(X_means)/len(X_means)
+                        sig = sum(sigs)/len(sigs)
+                        bentry = (C, X_mean, sig)
+                        mean_fitres.append((namep, bentry))
+                printl(mean_fitres)
+                indx = i+ start
+                ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, [sublist[0] for sublist in mean_fitres[2:]], [sublist[1] for sublist in mean_fitres[2:]], label)
+        #printl(unique_entries, pretty=True)
+        #printl(precise_unique_entries, pretty=True)
+        #printl(result_master, pdnomax=True)
+
+                
+                    
+                          
         else:
-            fig, ax = plot_together_CC_fit(data, CC_culm, result_master_fit, culture_name, fig, ax)
-            new_order = []
-            for label in custom_order:
-                new_order.append(label)
-                new_order.append(label + ' fit')
-            custom_order = new_order
+            precise_list = []
+
+        
+        if plot_together != True:
+            name = str(name[0]) + " " + str(name[1])
+        else:
             ax.legend()
-            ax = labelreorg(ax, custom_order, deldouble=False)
-        ax.set_title(culture_name)
+            ax = labelreorg(ax)
+        ax.set_title(name)
         ax.set_xlabel('Volume (fL)')
         if CC_norm_data == True:
             ax.set_ylabel('Fraction of cells')
         else:
             ax.set_ylabel('Number of cells')
         ax.grid(True)
-        fig.canvas.manager.set_window_title(CC_exp_name + '_' + culture_name)
-        save_path = os.path.join(CC_path, CC_exp_name) + '_' + culture_name + '.png'
+        name = name.replace(" ", "_").replace(".", "_")
+        fig.canvas.manager.set_window_title(exp_name_master + '_' + name)
+        save_path = os.path.join(savepath, exp_name_master) + '_' + name + '.png'
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
-    if CC_fit == True:
-        savexlsxfit_CC(result_master_excel, CC_path, CC_exp_name, culture_names)
     plt.show()

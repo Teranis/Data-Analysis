@@ -4,7 +4,7 @@ import CC
 
 print('Running Data Analysis')
     
-CC.boxplot()
+CC.coultercounter()
 
 ####Possible commands
 ##CC

@@ -444,6 +444,7 @@ def doublingtime():
     ax2.set_xticklabels([sublist[0] for sublist in unique_names])
     ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
+    ax2.legend()
     ax2 =  labelreorg(ax2, find_custom_order=True)
     if adderrorbars:
         results_master_list = results_master.values.tolist()

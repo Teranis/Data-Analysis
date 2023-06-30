@@ -12,6 +12,10 @@ import inspect ###
 from datetime import datetime
 from pprint import pprint
 import regex as re
+import matplotlib.patches as patches
+import matplotlib.lines as lines
+import matplotlib.patches as patches
+import matplotlib.collections as collections
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -63,6 +67,7 @@ def sort_labels(ax, custom_order):
         #printl([text.get_text() for text in legend.get_texts()])
         #print(legend.get_lines())
         handles, labels = legend.legendHandles, [text.get_text() for text in legend.get_texts()]
+        #printl(handles, labels)
         sort_list = sorted(range(len(labels)), key=lambda k: custom_order.index(labels[k]))
         ax.legend(handles=[], labels= [])
         ax.legend([handles[idx] for idx in sort_list],[labels[idx] for idx in sort_list])
@@ -94,8 +99,14 @@ def labelreorg(axs, custom_order=[], deldouble=True, find_custom_order=False):
 
         colors = getcolormap(len(new_labels))
 
-        for obj, label in zip(axs.get_children(), labels):
-            obj.set_color(colors[new_labels.index(label)])
+        for obj in axs.get_children():
+            #print(type(obj))
+            #if obj.get_label() in new_labels:
+                label = obj.get_label()
+                #printl(obj.get_label(), type(obj))
+                if str(label) in new_labels:
+                #if isinstance(obj, (patches.Patch, lines.Line2D, collections.PathCollection, collections.PolyCollection)):
+                     obj.set_color(colors[new_labels.index(label)])
 
         axs.legend(new_handles, new_labels)
 
@@ -146,12 +157,18 @@ def getcolormap(howmany):
         colors = [color_map(i) for i in np.linspace(0, 1, howmany)]
     return colors
 
-def calcerrorslowerupper(func, x, *args):
+def calcerrorslowerupper(func, x, *args, cum=False):
     '''
     Calculates the upper and lower error bounds for the fit parameters.
-    syntax: calcerrorslowerupper(func, x, *args) where func is the function, x the first arg of func, and args are as follows: args = (value, uncertainty). Returns a tuple of the upper and lower bounds of the fit parameters. (max(ys), min(ys))
+    syntax: calcerrorslowerupper(func, x, *args) where func is the function, x the value(s) for the first arg of func, and args are a list of the args IN THE RIGHT ORDER for func as follows: args = (value, uncertainty). Returns a tuple of the upper and lower bounds of the fit parameters. (max(ys), min(ys))
     '''
-    if type(x) is float or int:
+    #printl(type(x))
+    typex = type(x)
+    if typex == float or typex == int:
+        #print("I RUN")
+        if cum == True: 
+            printl("I am very confused! Do you want to create a cum list out of a single x?")
+            exit()
         ys = []
         consts = []
         for arg in args:
@@ -173,6 +190,10 @@ def calcerrorslowerupper(func, x, *args):
                 ys.append(func(xentry, *permutation))
             y_min.append(min(ys))
             y_max.append(max(ys))
+        if cum == True:
+            for y_list in y_min, y_max:
+                for i, _ in enumerate(y_list[1:], start=1):
+                    y_list[i] = y_list[i] + y_list[i-1]
         return y_max, y_min
 
 def create_uniques_list(name_list):
@@ -210,9 +231,6 @@ def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False, pr
     name_list = data_frame.iloc[:, 0].tolist()
     label_list = data_frame.iloc[:, 1].tolist()
     name_unique = create_uniques_list(name_list)
-    if precise_unique == True:
-        name_label_list = [str(name) +"$&$"+ str(label) for name, label in zip(name_list, label_list)]
-        namelabel_unique = create_uniques_list(name_label_list)
    
     for name in name_unique:
         endpoint = name[1] + name[2]
@@ -227,6 +245,11 @@ def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False, pr
     sorted_df = sorted_df.reset_index(drop=True)
     #pd.set_option('display.max_columns', 100)
     #print(sorted_df)
+    if precise_unique == True:
+        name_list = sorted_df.iloc[:, 0].tolist()
+        label_list = sorted_df.iloc[:, 1].tolist()
+        name_label_list = [(name, label) for name, label in zip(name_list, label_list)]
+        namelabel_unique = create_uniques_list(name_label_list)
     if precise_unique == False:
         return sorted_df, name_unique
     elif precise_unique == True:

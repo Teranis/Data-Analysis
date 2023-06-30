@@ -19,11 +19,13 @@ def importconfigCC():
     CC_fit = config['CC_fit']
     exp_name_master = config['exp_name_master']
     savepath = config['save_path']
+    plot_together = config['plot_together']
+    scatter = config['scatter']
     if savepath is not str or savepath=="":
         savepath = CC_paths[0]
     if exp_name_master is not str or exp_name_master=="":
         exp_name_master = CC_exp_names[0]
-    return CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master
+    return CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master, plot_together, scatter
 
 def importconfigOD():
     parent_dir = os.path.dirname(__file__)
@@ -47,7 +49,7 @@ def importconfigOD():
                     print(file_name)
                     exp_names.append(re.findall(r"\d{1,2}_\d{1,2}_\d{1,2}_?\d?", file_name)[0])
     except:
-        print("No files found!")
+        print("Error while finding files and extracting name!")
         exit()
     if excel_paths == []:
         print("No files found!")
