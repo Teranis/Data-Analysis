@@ -19,6 +19,7 @@ from configload import importconfigCC
 import copy
 import matplotlib.cbook
 from itertools import chain
+from math import sqrt
 #from data_analysis.core import sorting_dataframe
 #import seaborn as sns
 ### small
@@ -194,7 +195,7 @@ def fit(x, y, what):
     return param_optimised, param_covariance_matrix
 
 def pltfit(ax, x, CC_culm, param_optimised, param_covariance, label, color="orange"):
-
+    #printl(param_optimised)
     if CC_culm != True:
         ax.plot(x, gauslist(x, param_optimised[0], param_optimised[1], param_optimised[2]), label=label, color=color)
         y_upper, y_lower = calcerrorslowerupper(gaus, x, (param_optimised[0], param_covariance[0]), (param_optimised[1], param_covariance[1]), (param_optimised[2], param_covariance[2]), cum=CC_culm)
@@ -365,49 +366,55 @@ def coultercounter():
                label = ""
             #printl(label)
             fig, ax = plot_CC(listforculturedata[i], label, fig, ax, scatter)
+        if CC_fit == True:
             precise_list = []
-            if CC_fit == True:
-                mean_fitres = []
-                if plot_together == True:
-                    for bentry in precise_unique_entries:
-                        if name == bentry[0][0]:
-                            precise_list.append(bentry)
-                    #printl(precise_list)
-                    for namep, startp, lengp in precise_list:
-                        endp = startp + lengp
-                        listforculture = result_master.iloc[startp:endp,:].values.tolist()
-                        #printl(listforculture)
-                        Cs = []
-                        Cserr = []
-                        X_means = []
-                        X_meanserr = []
-                        sigs = []
-                        sigserr = []
-                        for sublist in listforculture:
-                            Cs.append(sublist[2][0])
-                            Cserr.append(sublist[2][1])
-                            X_means.append(sublist[3][0])
-                            X_meanserr.append(sublist[3][0])
-                            sigs.append(sublist[4][0])
-                            sigserr.append(sublist[4][0])
-                        C = sum(Cs)/len(Cs)
-                        X_mean = sum(X_means)/len(X_means)
-                        sig = sum(sigs)/len(sigs)
-                        bentry = (C, X_mean, sig)
-                        mean_fitres.append((namep, bentry))
-                printl(mean_fitres)
-                indx = i+ start
-                ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, [sublist[0] for sublist in mean_fitres[2:]], [sublist[1] for sublist in mean_fitres[2:]], label)
-        #printl(unique_entries, pretty=True)
-        #printl(precise_unique_entries, pretty=True)
-        #printl(result_master, pdnomax=True)
-
-                
-                    
-                          
-        else:
-            precise_list = []
-
+            mean_fitres = []
+            if plot_together==True:
+                for bentry in precise_unique_entries:
+                    if name == bentry[0][0]:
+                        precise_list.append(bentry)
+            else:
+                precise_list = [(name, start, leng)]
+                #printl(precise_list)
+            for namep, startp, lengp in precise_list:
+                endp = startp + lengp
+                listforculture = result_master.iloc[startp:endp,:].values.tolist()
+                #printl(listforculture)
+                Cs = []
+                Cserr = []
+                X_means = []
+                X_meanserr = []
+                sigs = []
+                sigserr = []
+                for sublist in listforculture:
+                    Cs.append(sublist[2][0])
+                    Cserr.append(sublist[2][1])
+                    X_means.append(sublist[3][0])
+                    X_meanserr.append(sublist[3][1])
+                    sigs.append(sublist[4][0])
+                    sigserr.append(sublist[4][1])
+                C = sum(Cs)/len(Cs)
+                X_mean = sum(X_means)/len(X_means)
+                sig = sum(sigs)/len(sigs)
+                bentry = (C, X_mean, sig)
+                Cerror_mean = sqrt(sum([u**2 for u in Cserr])/len(Cserr))
+                X_meanerr_mean = sqrt(sum([u**2 for u in X_meanserr])/len(X_meanserr))
+                sigerr_mean = sqrt(sum([u**2 for u in sigserr])/len(sigserr))
+                bunc = (Cerror_mean ,X_meanerr_mean, sigerr_mean)
+                mean_fitres.append((namep, bentry, bunc))
+            #printl(listforculture)
+            #printl(mean_fitres)
+        for i, entry in enumerate(mean_fitres):
+            indx = i+ start
+            #if plot
+            if plot_together==True:
+                label = entry[0][1]
+            else:
+                label = ""
+            ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, entry[1], entry[2], label)
+#printl(unique_entries, pretty=True)
+#printl(precise_unique_entries, pretty=True)
+#printl(result_master, pdnomax=True)
         
         if plot_together != True:
             name = str(name[0]) + " " + str(name[1])
