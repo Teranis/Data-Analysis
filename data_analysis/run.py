@@ -4,7 +4,7 @@ import CC
 
 print('Running Data Analysis')
     
-CC.coultercounter()
+CC.plotfitdata()
 
 ####Possible commands
 ##CC

@@ -164,30 +164,27 @@ def calcerrorslowerupper(func, x, *args, cum=False):
     '''
     #printl(type(x))
     typex = type(x)
+    consts = []
+    for arg in args:
+        consts.append((arg[0] - arg[1], arg[0] + arg[1]))
+        permutations = list(itertools.product(*consts))
     if typex == float or typex == int:
         #print("I RUN")
         if cum == True: 
             printl("I am very confused! Do you want to create a cum list out of a single x?")
             exit()
         ys = []
-        consts = []
-        for arg in args:
-            consts.append((arg[0] - arg[1], arg[0] + arg[1]))
-        permutations = list(itertools.product(*consts))
+        #printl(permutations)
         for permutation in permutations:
             ys.append(func(x, *permutation))
         return max(ys), min(ys)
     else:
         y_min, y_max = [], []
         for xentry in x:
-
             ys = []
-            consts = []
-            for arg in args:
-                consts.append((arg[0] - arg[1], arg[0] + arg[1]))
-            permutations = list(itertools.product(*consts))
             for permutation in permutations:
                 ys.append(func(xentry, *permutation))
+            #printl(permutations)
             y_min.append(min(ys))
             y_max.append(max(ys))
         if cum == True:
@@ -237,7 +234,11 @@ def sorting_dataframe(data_frame, split_name_label=False, create_beaty=False, pr
         sliced_df = data_frame.iloc[name[1]:endpoint].copy()
         label_list = sliced_df.iloc[:, 1].tolist()
         for i, label in enumerate(label_list):
-            label_list[i] = float(re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", label)[0])
+            number = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", label)
+            if len(number) == 1:
+                label_list[i] = float(number[0])
+            else:
+                label_list[i] = label
         sliced_df['temp_column'] = label_list
         sliced_df = sliced_df.sort_values(by='temp_column')
         sliced_df = sliced_df.drop(columns='temp_column')

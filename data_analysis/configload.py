@@ -12,7 +12,6 @@ def importconfigCC():
     config = json.loads(config_raw)
     CC_paths = config['CC_path']
     CC_exp_names = config['CC_exp_name']
-    culture_names = config['CC_culture_names']
     custom_order = config['CC_custom_order']
     CC_norm_data = config['CC_norm_data']
     CC_culm = config['CC_culm']
@@ -21,11 +20,12 @@ def importconfigCC():
     savepath = config['save_path']
     plot_together = config['plot_together']
     scatter = config['scatter']
+    custom_x_label = config['custom_x_label']
     if savepath is not str or savepath=="":
         savepath = CC_paths[0]
     if exp_name_master is not str or exp_name_master=="":
         exp_name_master = CC_exp_names[0]
-    return CC_paths, CC_exp_names, culture_names, custom_order, CC_norm_data, CC_culm, CC_fit, savepath, exp_name_master, plot_together, scatter
+    return {"CC_paths":CC_paths, "CC_exp_names":CC_exp_names, "custom_order":custom_order, "CC_norm_data":CC_norm_data, "CC_culm":CC_culm, "CC_fit":CC_fit, "savepath":savepath, "exp_name_master":exp_name_master, "plot_together":plot_together, "scatter":scatter, "custom_x_label":custom_x_label}
 
 def importconfigOD():
     parent_dir = os.path.dirname(__file__)
