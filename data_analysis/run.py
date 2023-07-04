@@ -9,7 +9,6 @@ CC.coultercounter()
 ####Possible commands
 ##CC
 #CC.coultercounter()
-#CC.coulterocunter_together()
 #CC.plotfitdata()
 #CC.boxplot()
 ##OD
