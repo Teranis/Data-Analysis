@@ -12,10 +12,7 @@ import inspect ###
 from datetime import datetime
 from pprint import pprint
 import regex as re
-import matplotlib.patches as patches
-import matplotlib.lines as lines
-import matplotlib.patches as patches
-import matplotlib.collections as collections
+import concurrent.futures
 #Organization (use search with the appropriate number of # followed by a space)
 ##### Configs (Outsourced to config.json))
 #### Sections: functions, main functions
@@ -157,7 +154,7 @@ def getcolormap(howmany):
         colors = [color_map(i) for i in np.linspace(0, 1, howmany)]
     return colors
 
-def calcerrorslowerupper(func, x, *args, cum=False):
+def calcerrorslowerupper(func, x, *args, cum=False, step=1):
     '''
     Calculates the upper and lower error bounds for the fit parameters.
     syntax: calcerrorslowerupper(func, x, *args) where func is the function, x the value(s) for the first arg of func, and args are a list of the args IN THE RIGHT ORDER for func as follows: args = (value, uncertainty). Returns a tuple of the upper and lower bounds of the fit parameters. (max(ys), min(ys))
@@ -165,9 +162,14 @@ def calcerrorslowerupper(func, x, *args, cum=False):
     #printl(type(x))
     typex = type(x)
     consts = []
+    steps = [-i/step for i in range(step+1)]
+    steps += [i/step for i in range(1, step+1, 1)]
+    #print(steps)
     for arg in args:
-        consts.append((arg[0] - arg[1], arg[0] + arg[1]))
-        permutations = list(itertools.product(*consts))
+        const = tuple([arg[0] + arg[1]*step for step in steps])
+        consts.append(const)
+    permutations = list(itertools.product(*consts))
+    #printl(len(permutations))
     if typex == float or typex == int:
         #print("I RUN")
         if cum == True: 
@@ -175,15 +177,17 @@ def calcerrorslowerupper(func, x, *args, cum=False):
             exit()
         ys = []
         #printl(permutations)
-        for permutation in permutations:
-            ys.append(func(x, *permutation))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(func, x, *permutation) for permutation in permutations]
+            ys = [future.result() for future in futures]
         return max(ys), min(ys)
     else:
         y_min, y_max = [], []
         for xentry in x:
             ys = []
-            for permutation in permutations:
-                ys.append(func(xentry, *permutation))
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(func, xentry, *permutation) for permutation in permutations]
+                ys = [future.result() for future in concurrent.futures.as_completed(futures)]
             #printl(permutations)
             y_min.append(min(ys))
             y_max.append(max(ys))

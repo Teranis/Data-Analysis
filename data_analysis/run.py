@@ -3,8 +3,8 @@ import OD
 import CC
 
 print('Running Data Analysis')
-    
-CC.plotfitdata()
+
+CC.coultercounter()
 
 ####Possible commands
 ##CC
