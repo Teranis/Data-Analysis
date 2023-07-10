@@ -1,27 +1,15 @@
-from calendar import c
 import os
-from re import A
 import matplotlib.pyplot as plt
 import regex as re
 import math
-from scipy import stats
 from scipy.optimize import curve_fit
-from scipy import asarray as ar,exp
+from scipy import asarray as exp
 import numpy as np
 import pandas as pd
-import operator
-#from data_analysis.core import saveexcel, labelreorg, getcolormap
-#from data_analysis.configload import importconfigCC
-#from data_analysis.core import sort_labels as sort_labels_CC
-from core import sort_labels as sort_labels_CC
 from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl, calcerrorslowerupper
 from configload import importconfigCC
 import copy
-import matplotlib.cbook
-from itertools import chain
 from math import sqrt
-#from data_analysis.core import sorting_dataframe
-#import seaborn as sns
 ### small
 def import_data_CC(path):
     ## imports data from a single file
@@ -135,7 +123,7 @@ def plot_together_CC_fit(data, CC_culm, result_master_fit, culture_name, fig=Non
             colorcount += 1
     colors = getcolormap(colorcount)
     i = 0
-    for j, entry in enumerate(data):
+    for entry in data:
         if re.match('^.*=?('+culture_name+')', entry[0]):
             label = edit_label_CC(entry[0], culture_name)
             ax.scatter(entry[1], entry[2], label=label, alpha=0.7, s=3, color=colors[i])
@@ -161,24 +149,6 @@ def gauslistcum(xlist, C, X_mean, sigma):
     for i, _ in enumerate(ylist[1:], start=1):
         ylist[i] = ylist[i] + ylist[i-1]
     return ylist
-
-#def errorgauslist(xlist, param_optimised, param_covariance_matrix, lowerupper, cummu):
-#    ylists = []
-#    for pm1 in [operator.pos, operator.neg]:
-#        for pm2 in [operator.pos, operator.neg]:
-#            for pm3 in [operator.pos, operator.neg]:
-#                if cummu != True:
-#                    ylists.append(gauslist(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
-#                elif cummu == True:
-#                    ylists.append(gauslistcum(xlist, param_optimised[0] + pm1(param_covariance_matrix[0,0]), param_optimised[1] + pm2(param_covariance_matrix[1,1]), param_optimised[2] + pm3(param_covariance_matrix[2,2])))
-#    ylist_master = []
-#    ylists = list(zip(*ylists))
-#    for ylistentry in ylists:
-#        if lowerupper == 'lower':
-#            ylist_master.append(min(ylistentry))
-#        elif lowerupper == 'upper':
-#            ylist_master.append(max(ylistentry))
-#    return ylist_master
 
 def fit(x, y, what):
     mean = np.average(x, weights=y)               
@@ -214,20 +184,6 @@ def savexlsxfit_CC(result_master_ext, CC_path, CC_exp_name):
     for i, _ in enumerate(result_master_int):
         for j in range(1, 4):
             result_master_int[i][j] = str(result_master_int[i][j][0]) + "+-" + str(result_master_int[i][j][1])
-    #result_master_sorted = []
-    #for name in culture_names:
-    #    listforculture = []
-    #    #print(result_master_int)
-    #    for entry in result_master_int:
-    #        listforculture = match_name(name, entry[0][2], listforculture)
-    #    sorted_list = []
-    #    sorted_list2 = []
-    #    print(listforculture)
-    #    sorted_list = sorted(listforculture, key=lambda x: x[0])
-    #    for entry in sorted_list:
-    #        entry[0] = name + "_" + str(entry[0]) + "nM"
-    #        sorted_list2.append(entry)
-    #    result_master_sorted += sorted_list2
     result_master = pd.DataFrame(result_master_int)
     result_master.columns = ['name', 'C', 'X_mean', 'sigma']
     result_master, unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True)
@@ -270,12 +226,9 @@ def plotfitdata():
         is_numberlabel = True
         if is_numberlabel == True:
             for label in [sublist[1] for sublist in listforculture]:
-               if not isinstance(label, float):
+                if not isinstance(label, float):
                     is_numberlabel = False
         ax.scatter(x=[sublist[1] for sublist in listforculture], y=[sublist[3][0] for sublist in listforculture])
-        #print([sublist[2][0] for sublist in listforculture])
-        #ax.errorbar(x=[sublist[0] for sublist in listforculture], y=[sublist[2][0] for sublist in listforculture], yerr=[sublist[3][0] for sublist in listforculture], fmt='none', capsize=4)
-        #print([sublist[3][0] for sublist in listforculture])
         ax.grid(True)
         ax.set_title(name+ " Fit results")
         ax.set_ylabel('Volume (fL)')
@@ -313,7 +266,6 @@ def boxplot():
     exp_name_master = config["exp_name_master"]
     custom_x_label = config["custom_x_label"]
     data = import_all_data_CC(CC_paths, CC_exp_names)
-    #data = norm_data_cc(data, CC_norm_data)
     for entry in data:
         entry[0] = entry[0][2].rstrip(".=#Z2")
     data = pd.DataFrame(data)
@@ -384,7 +336,6 @@ def coultercounter():
     data_dataframe.columns = ['Name', 'Size', 'Number']
     data_dataframe['Name'] = data_dataframe['Name'].apply(lambda x: x[2])
     data_dataframe, unique_entries, precise_unique_entries = sorting_dataframe(data_dataframe, split_name_label=True, create_beaty=True, precise_unique=True)
-    #data_dataframe['Number'] = data_dataframe['Number'].astype(int)
     #printl(data_dataframe, pdnomax=True)
     if CC_fit == True:
         result_master = []
@@ -408,7 +359,7 @@ def coultercounter():
         for i, entry in enumerate(listforculture):
             label = entry[1]
             if plot_together != True:
-               label = ""
+                label = ""
             #printl(label)
             fig, ax = plot_CC(listforculturedata[i], label, fig, ax, scatter)
         if CC_fit == True:

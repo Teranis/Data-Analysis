@@ -1,9 +1,10 @@
 {
-  "OD_excel_path": [ "H:\\Timon\\notes\\OD_Trial" ],
-  "OD_exp_name": "example",
+  "OD_excel_path": [ "H:\\Timon\\notes\\OD\\OD_measurement_07_07_23\\1", "H:\\Timon\\notes\\OD\\OD_measurements_26_05_23" ],
+  "OD_exp_name": "ASY071-1, ASY073-1 and ASY075-1 in different hormone concentrations",
   "_comment1": "OD_exp_name is only for single exp. For multiple exp please change the name of the .xlsx files",
   "OD_norm_data": true,
   "OD_use_fit": true,
   "OD_exp_fit": true,
-  "OD_add_error_to_OD_plot": true
+  "OD_add_error_to_OD_plot": true,
+  "savepath": "H:\\Timon\\notes\\OD\\OD_measurement_07_07_23\\1_results"
 }   

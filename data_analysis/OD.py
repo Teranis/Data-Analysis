@@ -4,17 +4,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
-import matplotlib.cm as mcolors
 import statsmodels.api as sm
 from configload import importconfigOD
-from core import  labelreorg, saveexcel, getcolormap, calcerrorslowerupper, printl, sorting_dataframe
+from core import  labelreorg, saveexcel, calcerrorslowerupper, printl, sorting_dataframe
 from core import loadexcel as import_data_OD
 import regex as re
 import copy
 import math
-#from data_analysis.configload import importconfigOD
-#from data_analysis.core import  labelreorg, saveexcel, getcolormap
-#From data_analysis.core import loadexcel as import_data_OD
 
 ### small
 
@@ -78,20 +74,15 @@ def fit_curve(time, start_OD, D):
     return OD
 
 def calc_OD(time, DT, startOD):
-     return 2**(time/DT) * startOD
+    return 2**(time/DT) * startOD
 
 def calc_OD_lin(time, D, startOD):
-     return (2/D)*time + startOD
+    return (2/D)*time + startOD
 
 def fit_curve_lin(time, start_OD, D):
     ## linear fit
     OD = start_OD + time*D
     return OD
-
-#def fitting(fit_curve, ODs, time, start_OD, fitstartval):
-### fitting the data using scipy
-#    D, cov_ma = curve_fit(lambda time, D: fit_curve(time, start_OD, D), time, ODs, fitstartval)
-#    return D
 
 def fitting_new(ODs, time, start_OD, fitstartval, OD_exp_fit, culture_name, legend):
     ## fitting the data using statmodels
@@ -170,7 +161,6 @@ def match_names(data_names, starting_list_index=0, name_matches=[]):
             index = data_names_copy[match[0]].index(data_names[matches[0][0]][matches[0][1]])
             data_names_copy[match[0]][index] = None
     #print(data_names_copy)
-    #name_list_matches = []
     for i, name1 in enumerate(data_names_copy[starting_list_index]):
         if name1 != None:
             name_match = [(starting_list_index, i)]
@@ -179,7 +169,6 @@ def match_names(data_names, starting_list_index=0, name_matches=[]):
                 for k, name2 in enumerate(name_list):
                     name1_edit = name1.rstrip().lstrip().lower()
                     name2_edit = name2.rstrip().lstrip().lower()
-                    #name_list_matches.append((name1_edit, name2_edit))
                     if name1_edit == name2_edit:
                         name_match.append((j, k))
                         #print("Matched:" +  name1_edit  + " and "+  name2_edit + " \nIndexes: " + str(j)+ ", "+ str(k))
@@ -245,7 +234,7 @@ def find_legend_list(data_legends):
 ### Main
 def odplot():
     ## creates plots for each culture
-    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names, savepath = importconfigOD()
     adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     for excel_path in excel_paths:
@@ -253,6 +242,7 @@ def odplot():
         data = import_data_OD(excel_path)
         data_master.append(data)
         print(data)
+    excel_path = savepath
     for masterindex, datap_master in enumerate(data_master):
         data = datap_master.copy(deep=True)
         no_timepoints, total_pos, no_cultures, no_perculture = getmetadata_genstuff(data)
@@ -279,7 +269,7 @@ def odplot():
             ax.set_yscale('log')
             ax.legend()
             ax.grid(True)
-            exp_name = exp_name.replace(".", "_")
+            exp_name = exp_name.replace(".", "_").replace(" ", "_")
             fig.canvas.manager.set_window_title(str(exp_name) + '_' + culturename)
             #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
             plt.savefig(os.path.join(os.path.dirname(excel_path), str(exp_name) + '_' + culturename + '.png'))
@@ -315,7 +305,7 @@ def odplot():
 
 def doublingtime():
     ## calculates doubling time for each culture
-    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names = importconfigOD()
+    excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names, savepath = importconfigOD()
     adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     if use_fit != True:
@@ -352,7 +342,7 @@ def doublingtime():
         results = pd.DataFrame(results)
         results_save, unique_names = sorting_dataframe(results)
         results_save.rename(columns={results_save.columns[0]: 'Culture', results_save.columns[1]: 'Hormone conc.', results_save.columns[2]: 'Doubling time', results_save.columns[3]: 'Starting OD'}, inplace=True)
-        saveexcel(results_save, os.path.join(os.path.dirname(excel_path), exp_names[masterindex]) + '_doublingtime_hardcalc.xlsx') 
+        saveexcel(results_save, os.path.join(savepath, exp_names[masterindex]) + '_doublingtime_hardcalc.xlsx') 
         results_master.append(results)
     
     if use_fit == True:
@@ -412,8 +402,9 @@ def doublingtime():
         results_master.rename(columns={results_master.columns[0]: 'Culture', results_master.columns[1]: 'Hormone conc.', results_master.columns[2]: 'Doubling time', results_master.columns[3]:"Starting culture size from fit", results_master.columns[4]: "Confidence intervals 95% coeff", results_master.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
         
         results_master, unique_names = sorting_dataframe(results_master)
-        saveexcel(results_master, os.path.join(os.path.dirname(excel_path), exp_name + '_doublingtime_fit.xlsx'))
-    fig2, ax2 = plt.subplots(layout="constrained")
+        exp_name = exp_name.replace(" ", "_")
+        saveexcel(results_master, os.path.join(savepath, exp_name + '_doublingtime_fit.xlsx'))
+    fig2, ax2 = plt.subplots()
     #print(data_names)
     #printl(sorted_results, pretty=True)
     ##printing barchart
@@ -432,11 +423,19 @@ def doublingtime():
         sliced_df_list = sliced_df.values.tolist()
         for j, result in enumerate(sliced_df_list):
             #print(result)
-            offset = width * multiplier  
-            ax2.bar(offset, result[2], label=result[1], width=width)
+            offset = width * multiplier
+            label = result[1]
+            #print(type(result[1]))
+            #print(label)
+            #print(offset, result[2], width, label)
+            printl(offset, result[2], width, label)
+            ax2.bar(offset, result[2], width=width, label=[label])
+            #print(bar.get_legend())
             multiplier += 1
             coordinates.append(offset)
         multiplier += 1
+    for obj in ax2.get_children():
+        print(obj, obj.get_label())
     ax2.set_title("Hormone concentration vs doubling-time")
     #print(unique_names)
     coordinates_group = [entry + (width*(unique_names[i][2]-1))/2 for i, entry in enumerate(coordinates_group)]
@@ -445,7 +444,9 @@ def doublingtime():
     ax2.set_xlabel('Culture')
     ax2.set_ylabel('Doubling time (h)')
     ax2.legend()
-    ax2 =  labelreorg(ax2, find_custom_order=True)
+    #printl(ax2.get_legend_handles_labels())
+    ax2 = labelreorg(ax2, find_custom_order=True)
+    #ax2.legend()
     if adderrorbars:
         results_master_list = results_master.values.tolist()
         for i, result in enumerate(results_master_list):
@@ -453,8 +454,8 @@ def doublingtime():
             ax2.errorbar(coordinates[i], result[2], yerr=result[4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeBarchart')
-    print("Saving bar-chart to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeBarchart.png'))
-    fig2.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_DoublingTimeBarchart.png'))
+    printl("Saving bar-chart to: "+os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
+    fig2.savefig(os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
     #print(data_master)
     #printl(name_legend_matches, pretty=True)
     ###plotting fit
@@ -499,7 +500,6 @@ def doublingtime():
                         y_u, y_l = calcerrorslowerupper(calc_OD, time, (results_master.iloc[j][2], results_master.iloc[j][4]), (results_master.iloc[j][3], results_master.iloc[j][5]))
                         y_upper.append(y_u)
                         y_lower.append(y_l)
-                        ###fit_curve(time, data.iloc[j, 0], log(2)/results.iloc[j][2]))
                 elif OD_exp_fit != True:
                     #print(fit_curve_lin(time, data.iloc[j, 0], results.iloc[j][2]))
                     y.append(calc_OD_lin(time, results.iloc[j][2], results.iloc[j][3]))
@@ -532,7 +532,5 @@ def doublingtime():
             fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0]+ '_basicfit')
             print("Saving"+ cultureentry[0] +"fit to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
             fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_basicfit.png'))
-
-    
 
     plt.show()

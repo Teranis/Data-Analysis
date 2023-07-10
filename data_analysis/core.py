@@ -1,11 +1,9 @@
 import os
 import sys ###
 import subprocess
-import matplotlib.pyplot as plt
 import matplotlib.cm as mcolors
 import pandas as pd
 import time
-import math as m
 import numpy as np
 import itertools
 import inspect ###
@@ -71,12 +69,15 @@ def sort_labels(ax, custom_order):
     return ax
 
 def labelreorg(axs, custom_order=[], deldouble=True, find_custom_order=False):
-    if find_custom_order:
+    #handles, labels = axs.get_legend_handles_labels
+    #printl(handles, labels)
+    if find_custom_order == True:
         labels = axs.get_legend_handles_labels()[1]
         for i, label in enumerate(labels):
             labels[i] = (float(re.findall(r"\d+\.?\d+", label)[0]), label)
         labels = sorted(labels, key=lambda x: x[0])
         custom_order = [label[1] for label in labels]
+        #print(custom_order)
         if deldouble:
             custom_order_single = []
             for entry in custom_order:
@@ -85,7 +86,8 @@ def labelreorg(axs, custom_order=[], deldouble=True, find_custom_order=False):
             custom_order = custom_order_single
         #print("Custom order: ")
         #print(custom_order)
-    
+    #handles, labels = axs.get_legend_handles_labels
+    #printl(handles, labels)
     if deldouble:
         handles, labels = axs.get_legend_handles_labels()
         new_handles, new_labels = [], []
@@ -94,16 +96,14 @@ def labelreorg(axs, custom_order=[], deldouble=True, find_custom_order=False):
                 new_handles.append(handle)
                 new_labels.append(label)
 
+        
+        #printl(new_handles, new_labels)
         colors = getcolormap(len(new_labels))
-
+        
         for obj in axs.get_children():
-            #print(type(obj))
-            #if obj.get_label() in new_labels:
-                label = obj.get_label()
-                #printl(obj.get_label(), type(obj))
-                if str(label) in new_labels:
-                #if isinstance(obj, (patches.Patch, lines.Line2D, collections.PathCollection, collections.PolyCollection)):
-                     obj.set_color(colors[new_labels.index(label)])
+            label = obj.get_label()
+            if str(label) in new_labels:
+                obj.set_color(colors[new_labels.index(label)])
 
         axs.legend(new_handles, new_labels)
 
@@ -117,7 +117,7 @@ def saveexcel(what, where):
             what.to_excel(where, index=False)
         except PermissionError:
             if not already_warned:
-                print('PermissionError: Please close the excel file before saving.')
+                print('PermissionError: Please close the excel file before saving.\nPath: '+where)
                 already_warned = True
             time.sleep(0.1)
             continue
@@ -131,7 +131,21 @@ def loadexcel(where):
             data = pd.read_excel(where)
         except PermissionError:
             if not already_warned:
-                print('PermissionError: Please close the excel file before saving.')
+                print('PermissionError: Please close the excel file before saving.\nPath: '+where)
+                already_warned = True
+            time.sleep(0.1)
+        else:
+            print('Loaded excel from', where)
+            return data
+
+def loadcsv(where):
+    already_warned = False
+    while True:
+        try:
+            data = pd.read_csv(where)
+        except PermissionError:
+            if not already_warned:
+                print('PermissionError: Please close the excel file before saving.\nPath: '+where)
                 already_warned = True
             time.sleep(0.1)
         else:
