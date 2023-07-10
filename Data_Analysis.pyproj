@@ -29,11 +29,8 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="data_analysis\.gitignore" />
-    <Content Include="data_analysis\acdc_paper_plots.ipynb" />
-    <Content Include="data_analysis\cell_cycle_analysis.ipynb" />
     <Content Include="data_analysis\configCC.json" />
     <Content Include="data_analysis\configOD.json" />
-    <Content Include="data_analysis\configspotMAX.json" />
     <Content Include="data_analysis\OD_measurements_example.xlsx" />
     <Content Include="data_analysis\__pycache__\Data_Analysis.cpython-311.pyc" />
     <Content Include="LICENSE" />
@@ -49,7 +46,6 @@
     <Compile Include="data_analysis\core.py" />
     <Compile Include="data_analysis\OD.py" />
     <Compile Include="data_analysis\run.py" />
-    <Compile Include="data_analysis\spotMAX.py" />
     <Compile Include="data_analysis\_version.py" />
     <Compile Include="data_analysis\__init__.py" />
   </ItemGroup>

@@ -59,12 +59,3 @@ def importconfigOD():
         exit()
     OD_add_error_to_OD_plot = config['OD_add_error_to_OD_plot']
     return excel_paths, exp_name, OD_norm_data, use_fit, OD_exp_fit, OD_add_error_to_OD_plot, exp_names, savepath
-
-def importconfigspotMAX():
-    parent_dir = os.path.dirname(__file__)
-    config_file_path = os.path.join(parent_dir, 'configspotMAX.json')
-    with open(config_file_path, 'r') as input_file:
-        config_raw = input_file.read()
-    config_raw = config_raw.replace('\\','/')
-    config = json.loads(config_raw)
-    return config
