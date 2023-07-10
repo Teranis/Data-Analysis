@@ -433,7 +433,7 @@ def doublingtime():
         for j, result in enumerate(sliced_df_list):
             #print(result)
             offset = width * multiplier  
-            ax2.bar(offset, result[2], label=result[1], width=width)
+            ax2.bar(offset, result[2], label=[result[1]], width=width)
             multiplier += 1
             coordinates.append(offset)
         multiplier += 1

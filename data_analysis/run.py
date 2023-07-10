@@ -4,7 +4,7 @@ import CC
 
 print('Running Data Analysis')
 
-CC.coultercounter()
+OD.doublingtime()
 
 ####Possible commands
 ##CC
