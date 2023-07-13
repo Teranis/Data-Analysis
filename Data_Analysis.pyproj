@@ -45,11 +45,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="data_analysis\CC.py" />
+    <Compile Include="data_analysis\CellACDCana.py" />
     <Compile Include="data_analysis\configload.py" />
     <Compile Include="data_analysis\core.py" />
     <Compile Include="data_analysis\OD.py" />
     <Compile Include="data_analysis\run.py" />
-    <Compile Include="data_analysis\spotMAX.py" />
+    <Compile Include="data_analysis\spotMAXana.py" />
     <Compile Include="data_analysis\_version.py" />
     <Compile Include="data_analysis\__init__.py" />
   </ItemGroup>

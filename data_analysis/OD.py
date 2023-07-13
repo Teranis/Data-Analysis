@@ -428,7 +428,7 @@ def doublingtime():
             #print(type(result[1]))
             #print(label)
             #print(offset, result[2], width, label)
-            printl(offset, result[2], width, label)
+            #printl(offset, result[2], width, label)
             ax2.bar(offset, result[2], width=width, label=[label])
             #print(bar.get_legend())
             multiplier += 1

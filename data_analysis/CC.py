@@ -297,8 +297,8 @@ def boxplot():
         for label in [sublist[1] for sublist in cult_list]:
             if not isinstance(label, float):
                 is_numberlabel = False
-            print(type(label))
-            print(is_numberlabel)
+            #print(type(label))
+            #print(is_numberlabel)
         if is_numberlabel == True:
             ax.boxplot([sublist[2] for sublist in cult_list], positions=[sublist[1] for sublist in cult_list], showfliers=False)
         else:

@@ -1,10 +1,11 @@
 import core
 import OD
 import CC
-import spotMAX
+import spotMAXana
+import CellACDCana
 print('Running Data Analysis')
 
-spotMAX.boxplot()
+spotMAXana.boxplot()
 
 ####Possible commands
 ##CC
@@ -14,6 +15,8 @@ spotMAX.boxplot()
 ##OD
 #OD.odplot()
 #OD.doublingtime()
-##spotMAX
-#spotMAX.boxplot()
+##spotMAXana
+#spotMAXana.boxplot()
+##CellACDCana
+#CellACDCana.checkingcompleteness()
 ######Don't forget to change the path and other parameters in the respective config files
