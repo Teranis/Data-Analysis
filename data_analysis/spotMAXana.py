@@ -4,7 +4,7 @@ import os
 from configload import importconfigspotMAX
 import regex as re
 from core import loadcsv, printl, labelreorg
-import matplotlib as plt
+import matplotlib.pyplot as plt
 ###Small functions
 def finding_xlsx(root_path, folder_filter, spotMAX_foldername, spotMAX_filename):
     base_xlsx_files_paths =[]
@@ -42,7 +42,7 @@ def aggregate_mother_bud(per_frame):
     #printl(per_frame)
     mother_bud_match = []
     master_matches = []
-    for frame in per_frame[:10]:
+    for frame in per_frame:
         matches = 0
         frame_mother_bud_matches = [frame[0][0]]
         used_IDs = []
@@ -89,28 +89,34 @@ def aggregate_mother_bud(per_frame):
         mother_bud_match.append(frame_mother_bud_matches)
     return {'mother_bud_match':mother_bud_match, 'master_matches':master_matches}
 
-def boxplot(data, x_text=None, y_text=None, title=None, savepath=None, x_labels=None, y_labels=None, weights=None, labels=None, notch=None, sym=None, vert=None, whis=None, positions=None, widths=None, patch_artist=None, bootstrap=None, usermedians=None, conf_intervals=None, meanline=None, showmeans=None, showcaps=None, showbox=None, showfliers=None, boxprops=None, flierprops=None, medianprops=None, meanprops=None, capprops=None, whiskerprops=None, manage_ticks=True, autorange=False, zorder=None, capwidths=None, *args):
-    mplargs = (notch, sym, vert, whis, patch_artist, bootstrap, usermedians, conf_intervals, meanline, showmeans, showcaps, showbox, showfliers, boxprops, flierprops, medianprops, meanprops, capprops, whiskerprops, manage_ticks, autorange, zorder, capwidths, *args)
-    if type(data[0]) != list:
+def pltboxplot(data, x_text=None, y_text=None, title=None, savepath=None, x_labels=None, widths=None, weights=None, labels=None, *args):
+    printl(data)
+    fig, ax = plt.subplots()
+    if type(labels) != list:
+        if labels != None:
+            labels = [labels]
+    #print(type(data[0]))
+    if type(data[0]) != list and type(data[0]) != tuple:
         if weights != None:
             data_exp = []
             for i, datap in enumerate(data):
                 data_exp += [datap]*weights[i]
             data = data_exp
 
-        if y_labels!=None:
-            is_numberylabel = True 
+        if x_labels!=None:
+            is_numberxlabel = True 
             for label in labels:
                 if not isinstance(label, float):
-                    is_numberylabel = False
+                    is_numberxlabel = False
 
-        fig, ax = plt.subplots()
-        if is_numberylabel == True:
-            ax.boxplot(data, positions=y_labels, labels=labels, widths=widths, *mplargs)
+        
+        if is_numberxlabel == True:
+            ax.boxplot(data, positions=x_labels, widths=widths, *args)
         else:
-            labels = y_labels
-            ax.boxplot(data, labels=[labels], widths=widths, *mplargs)
+            labels = x_labels
+            ax.boxplot(data, widths=widths, *args)
     else:
+        coordinates_group = []
         if weights != None:
             data_exp = []
             for j, datalist in data:
@@ -120,19 +126,25 @@ def boxplot(data, x_text=None, y_text=None, title=None, savepath=None, x_labels=
                 data_exp.append(datalist_exp)
             data = data_exp
         if x_labels != None:
-            groupsize = len(data)/len(x_labels)
-            width = 0.75/(groupsize+1)
-            width_tot = 1/(groupsize+1)
             offset = 0
             mult = 0
-            for i, label in enumerate(x_labels):
+            for i, data_group in enumerate(data):
+                #printl(data_group)
+                groupsize = int(len(data_group))
+                #printl(groupsize)
+                width = 0.75/(groupsize+1)
+                width_tot = 1/(groupsize+1)
                 startp = i*groupsize
                 endp = (i+1)*groupsize
+                printl(groupsize)
                 pos = [i+j*width_tot for j in range(0, groupsize, 1)]
-                ax.boxplot(data[startp:endp], widths=width, labels=labels, positions=pos, *mplargs)
-                ax.set_xticklabels(x_labels)
+                ax.boxplot(data_group, widths=width, positions=pos, *args)
+                coordinates_group.append(pos[0])
+            coordinates_group = [entry + (width_tot*(groupsize-1))/2 for entry in coordinates_group]
+            ax.set_xticks(coordinates_group)
+            ax.set_xticklabels(x_labels)
         else:
-            ax.boxplot(data, widths=widths, labels=labels, positions=pos, *mplargs)
+            ax.boxplot(data, widths=widths, positions=pos, *args)
     ax.grid(True)
     if y_text != None:
         ax.set_ylabel(y_text)
@@ -141,18 +153,33 @@ def boxplot(data, x_text=None, y_text=None, title=None, savepath=None, x_labels=
     if title != None:
         ax.set_title(title)
     if labels != None:
-        if y_labels!=None:
+        if x_labels!=None:
             is_numberlabel = True 
             for label in labels:
                 if not isinstance(label, float):
                     is_numberlabel = False
-        ax.legend()
-        ax = labelreorg(ax, find_custom_order=is_numberlabel)
+        #ax.legend([bp1["boxes"][0], bp2["boxes"][0]], labels)
+        #ax = labelreorg(ax, find_custom_order=is_numberlabel)
     title = title.replace(".", "_").replace(" ", "_")
     fig.canvas.manager.set_window_title(title)
     save_path = os.path.join(savepath, title)
     fig.savefig(save_path)
     print('Saved box-plot to ' + save_path)
+    return plt
+
+def getframes(dic, frame1, frame2):
+    for key, entry in dic.items():
+        temp1 = []
+        temp2 = []
+        for frame, cell in entry:
+            if frame == frame1:
+                temp1 += cell
+            elif frame == frame2:
+                temp2 += cell
+        dic[key]= (temp1, temp2)
+        #printl(dic[key], pretty=True)
+    return dic
+
 
 ###Main
 def boxplot():
@@ -161,8 +188,28 @@ def boxplot():
     folder_filter = config["folder_filter"]
     spotMAX_foldername = config["spotMAX_foldername"]
     spotMAX_filename = config["spotMAX_filename"]
-    file_master = []
+    frame1, frame2 = config["frame1_frame2_tuple"]
     last_edited_frame = []
+    mother_bud_aggr = {
+        'Cell_Size':[],
+        'Mito_Size':[],
+        'Rel_Size':[]
+        }
+    mother = {
+        'Cell_Size':[],
+        'Mito_Size':[],
+        'Rel_Size':[]
+        }
+    bud = {
+        'Cell_Size':[],
+        'Mito_Size':[],
+        'Rel_Size':[]
+        }
+    single = {
+        'Cell_Size':[],
+        'Mito_Size':[],
+        'Rel_Size':[]
+        }
     for path in paths:
         base_xlsx_files_paths, xlsx_files_paths = finding_xlsx(path, folder_filter, spotMAX_foldername, spotMAX_filename)
         #printl(base_xlsx_files_paths, xlsx_files_paths)
@@ -170,10 +217,11 @@ def boxplot():
             #printl(file_path, pretty=True)
             data = loadcsv(file_path)
             per_frame = group_by_frame(data)
-            last_edited_frame.append(per_frame[-1][0])
+            print(data)
+            last_edited_frame.append(data.iloc[-1][0])
             aggregate_mother_bud_res = aggregate_mother_bud(per_frame)
             mother_bud_match = aggregate_mother_bud_res['mother_bud_match']
-            printl(mother_bud_match, pretty=True)
+            #printl(mother_bud_match, pretty=True)
 
             for frame in mother_bud_match:
                 mother_bud_aggr_frame = {
@@ -200,51 +248,68 @@ def boxplot():
                     if match[0][-1] == False:
                         single_frame['Cell_Size'].append(match[0][12])
                         single_frame['Mito_Size'].append(match[0][15])
-                        single_frame['Rel_Size'].append(match[0][15]/match[12])
+                        single_frame['Rel_Size'].append(match[0][15]/match[0][12])
                     else:
                         mother_frame['Cell_Size'].append(match[0][12])
                         mother_frame['Mito_Size'].append(match[0][15])
-                        mother_frame['Rel_Size'].append(match[0][15]/match[12])
+                        mother_frame['Rel_Size'].append(match[0][15]/match[0][12])
                         bud_frame['Cell_Size'].append(match[1][12])
                         bud_frame['Mito_Size'].append(match[1][15])
-                        bud_frame['Rel_Size'].append(match[1][15]/match[12])
+                        bud_frame['Rel_Size'].append(match[1][15]/match[1][12])
                         mother_bud_aggr_frame['Cell_Size'].append(match[0][12]+match[1][12])
                         mother_bud_aggr_frame['Mito_Size'].append(match[0][15]+match[1][15])
                         mother_bud_aggr_frame['Rel_Size'].append((match[0][15]+match[1][15])/(match[0][12]+match[1][12]))
 
+                #for key, value in mother_bud_aggr_frame.items():
+                #    avg = sum(value)/len(value)
+                #    mother_bud_aggr_frame[key] = avg
 
+                #for key, value in mother_frame.items():
+                #    avg = sum(value)/len(value)
+                #    mother_frame[key] = avg
 
-                for key, value in mother_bud_aggr_frame.items():
-                    avg = sum(value)/len(value)
-                    mother_bud_aggr_frame[key] = avg
+                #for key, value in bud_frame.items():
+                #    avg = sum(value)/len(value)
+                #    bud_frame[key] = avg
 
-                for key, value in mother_frame.items():
-                    avg = sum(value)/len(value)
-                    mother_frame[key] = avg
+                #for key, value in single_frame.items():
+                #    avg = sum(value)/len(value)
+                #    single_frame[key] = avg                   
 
-                for key, value in bud_frame.items():
-                    avg = sum(value)/len(value)
-                    bud_frame[key] = avg
+                single['Cell_Size'].append((frame[0], single_frame['Cell_Size']))
+                single['Mito_Size'].append((frame[0], single_frame['Mito_Size']))
+                single['Rel_Size'].append((frame[0], single_frame['Rel_Size']))
+                mother['Cell_Size'].append((frame[0], mother_frame['Cell_Size']))
+                mother['Mito_Size'].append((frame[0], mother_frame['Mito_Size']))
+                mother['Rel_Size'].append((frame[0], mother_frame['Rel_Size']))
+                bud['Cell_Size'].append((frame[0], bud_frame['Cell_Size']))
+                bud['Mito_Size'].append((frame[0], bud_frame['Mito_Size']))
+                bud['Rel_Size'].append((frame[0], bud_frame['Rel_Size']))
+                mother_bud_aggr['Cell_Size'].append((frame[0], mother_bud_aggr_frame['Cell_Size']))
+                mother_bud_aggr['Mito_Size'].append((frame[0], mother_bud_aggr_frame['Mito_Size']))
+                mother_bud_aggr['Rel_Size'].append((frame[0], mother_bud_aggr_frame['Rel_Size']))
+    #print(min(last_edited_frame))
+    last_edited_frame = int(min(last_edited_frame))
+    if frame2 == "End":
+        print('Using data until frame: ' + str(last_edited_frame))
+        frame2 = last_edited_frame
+    frame2=80 #############
+    single = getframes(single, frame1, frame2)
+    mother = getframes(mother, frame1, frame2)
+    bud = getframes(bud, frame1, frame2)
+    mother_bud_aggr = getframes(mother_bud_aggr, frame1, frame2)
+    printl(single['Cell_Size'], mother['Cell_Size'], bud['Cell_Size'], mother_bud_aggr['Cell_Size'])
+    Cell_Size = [single['Cell_Size'], mother['Cell_Size'], bud['Cell_Size'], mother_bud_aggr['Cell_Size']]
+    Mito_Size = [single['Mito_Size'], mother['Mito_Size'], bud['Mito_Size'], mother_bud_aggr['Mito_Size']]
+    Rel_Size = [single['Rel_Size'], mother['Rel_Size'], bud['Rel_Size'], mother_bud_aggr['Rel_Size']]
+    savepath = os.path.dirname(os.path.dirname(os.path.dirname(xlsx_files_paths[0])))
+    for data in (Cell_Size, Mito_Size, Rel_Size):
+        #printl(data, pretty=True)
+        #data = data[0]
+        #data = [sublist[0] for sublist in data]
+        #printl(data)
+        plt = pltboxplot(data, x_labels=('Single Cells', 'Mother Cells', 'Buds', 'Mother and Bud combined'), y_text='Size (fl)', title='Size of mitochondrial Network and Cell before and after media change', savepath=savepath, labels=[frame1, frame2])
+    plt.show
 
-                for key, value in single_frame.items():
-                    avg = sum(value)/len(value)
-                    single_frame[key] = avg
-                    
-
-                single['Cell_Size'].append(single_frame['Cell_Size'])
-                single['Mito_Size'].append(single_frame['Mito_Size'])
-                single['Rel_Size'].append(single_frame['Rel_Size'])
-                mother['Cell_Size'].append(mother_frame['Cell_Size'])
-                mother['Mito_Size'].append(mother_frame['Mito_Size'])
-                mother['Rel_Size'].append(mother_frame['Rel_Size'])
-                bud['Cell_Size'].append(bud_frame['Cell_Size'])
-                bud['Mito_Size'].append(bud_frame['Mito_Size'])
-                bud['Rel_Size'].append(bud_frame['Rel_Size'])
-                mother_bud_aggr['Cell_Size'].append(mother_bud_aggr_frame['Cell_Size'])
-                mother_bud_aggr['Mito_Size'].append(mother_bud_aggr_frame['Mito_Size'])
-                mother_bud_aggr['Rel_Size'].append(mother_bud_aggr_frame['Rel_Size'])
-            file_master.append([file_path, single, mother, bud, mother_bud_aggr])
-    print('Using data untill frame: ' + last_edited_frame)
-    for entry in file_master:
-        for dicti in entry[1:]:
-
+    
+    

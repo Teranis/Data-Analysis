@@ -2,5 +2,6 @@
   "path": [ "C:\\Users\\SchmollerLab\\Documents\\Timon\\spotMAXana_test\\2022-08-04" ],
   "folder_filter": "Pos",
   "spotMAX_foldername": "spotMAX_output",
-  "spotMAX_filename": "2_0_detected_spots_aggregated.csv"
+  "spotMAX_filename": "2_0_detected_spots_aggregated.csv",
+  "frame1_frame2_tuple": [ 18, "End" ]
 }   
