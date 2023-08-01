@@ -1,18 +1,43 @@
 import os
-from core import loadcsv
+from core import loadcsv, printl
 import pandas as pd
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+import pandas as pd
+import tables
+
+
 def checkingcompleteness(root_paths):
     errorlist = []
     channels_master = []
+    root_paths_new = []
     for root_path in root_paths:
+        folder_list = [ls for ls in os.listdir(root_path) if ls.startswith('.')==False]
+        printl(folder_list)
+        folder_list_CellACDC = [os.path.join(root_path, folder_name, 'Images') for folder_name in folder_list if os.path.isdir(os.path.join(root_path, folder_name)) and folder_name.startswith('Pos')]
+        folder_list_spotMAX = [os.path.join(root_path, folder_name, 'spotMAX_output') for folder_name in folder_list if os.path.isdir(os.path.join(root_path, folder_name)) and folder_name.startswith('Pos')]
+        if folder_list_CellACDC == [] and folder_list_spotMAX == []:
+            root_paths2 = []
+            for file_name in [ls for ls in os.listdir(root_path) if ls.startswith('.')==False]:
+                path = os.path.join(root_path, file_name)
+                if os.path.isdir(path):
+                    root_paths2.append(path)
+            root_paths_new += (root_paths2)
+    root_paths = root_paths_new
+    for root_path in root_paths:
+        
         folder_list = os.listdir(root_path)
-        print('\nFound Positions:')
+        print('\n\nxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxX')
+        print('\n\nIn: ' + root_path)
+        print('Found Positions:')
         print(folder_list)
-        folder_list_CellACDC = [os.path.join(root_path, folder_name, 'Images') for folder_name in folder_list]
-        folder_list_spotMAX = [os.path.join(root_path, folder_name, 'spotMAX_output') for folder_name in folder_list]
-        print('\n\n\n\n~~~~~~~~~~ Checking CellACDC output! ~~~~~~~~~~')
+        folder_list_CellACDC = [os.path.join(root_path, folder_name, 'Images') for folder_name in folder_list if os.path.isdir(os.path.join(root_path, folder_name)) and folder_name.startswith('Pos')]
+        folder_list_spotMAX = [os.path.join(root_path, folder_name, 'spotMAX_output') for folder_name in folder_list if os.path.isdir(os.path.join(root_path, folder_name)) and folder_name.startswith('Pos')]
+        
+        print('\n\n\n~~~~~~~~~~ Checking CellACDC output in '+ root_path +'! ~~~~~~~~~~')
         for folder_name in folder_list_CellACDC:
-            print('\n\n********** Checking folder: '+folder_name+ ' **********')
+            print('********** Checking folder: '+ folder_name + ' **********\n\n')
 
             searchfiles = ("acdc_output.csv", "align_shift.npy", "custom_annot_params.json", "custom_combine_metrics.ini", "dataPrepROIs_coords.csv", "dataPrep_bkgrROIs.json",  "last_tracked_i.txt", "metadata.csv", "metadataXML.txt", "segm.npz")
             boolinalist = [False]*len(searchfiles)
@@ -111,7 +136,7 @@ def checkingcompleteness(root_paths):
             elif 'cell_cycle_stage' not in acdc_output:
                 print('~+~+~+~+~+~+ CRITICAL: ~+~+~+~+~+~+ \nNo copy of: ' + searchname + '\nin: '+ folder_name+'\n')
                 errorlist.append(folder_name)
-            backupload = True
+            #backupload = True
             if backupload == True:
                 for file in os.listdir(folder_name):
                     if file == "recovery":
@@ -120,29 +145,41 @@ def checkingcompleteness(root_paths):
                             answer = answer.lower()
                             if answer == "y":
                                 h5_filepath = os.path.join(folder_name, 'recovery')
-                                backup_name = os.listdir(h5_filepath)[0] ###########
+                                for file in os.listdir(h5_filepath):
+                                    if file.endswith('_output.h5'):
+                                        backup_name = file
+                                #backup_name = os.listdir(h5_filepath)[0] ###########
                                 h5_filepath = os.path.join(h5_filepath, backup_name)
                                 print(h5_filepath)
                                 while True:
                                     answer = input('Do you want to recover from this file?([y]/n)')
                                     answer = answer.lower()
                                     if answer == "y":
-                                        with pd.HDFStore(h5_filepath, 'r') as hdf:
-                                            keys = hdf.keys()
-                                            dfkeys = pd.DataFrame(keys)
-                                            dfkeys.sort_values(ascending=False)
-                                            df = hdf[dfkeys.iloc()[0]]
-                                            df.to_csv(os.path.join(folder_name, backup_name.rstrip('.h5')+'backuprestored.csv'))
+                                        try:
+                                            with pd.HDFStore(h5_filepath, 'r') as hdf:
+                                                keys = hdf.keys()
+                                                dfkeys = pd.DataFrame(keys)
+                                                dfkeys.sort_values(ascending=False)
+                                                df = hdf[dfkeys.iloc()[0]]
+                                                savepath = os.path.join(folder_name, backup_name.rstrip('.h5')+'backuprestored.csv')
+                                                df.to_csv(savepath)
+                                                print('Saved to: ' + savepath)
+                                                break  
+                                        except tables.exceptions.HDF5ExtError as e:
+                                            print("An error occurred while opening the HDF5 file:", e)
+                                            break
                                     elif answer == "n":
                                         break
                                     else:
                                         print('That input confused me a bit! please make sure to type \'y\' or \'n\'')
                                         exit()
+                            elif answer == "n":
+                                break                             
                             else:
                                 print('That input confused me a bit! please make sure to type \'y\' or \'n\'')
                                 exit()
-        print('\n\n~~~~~~~~~~ Done checking CellACDC output! ~~~~~~~~~~')
-        print('\n\n\n\n~~~~~~~~~~ Checking SpotMAX output! ~~~~~~~~~~')
+        print('\n~~~~~~~~~~ Done checking CellACDC output! ~~~~~~~~~~')
+        print('\n\n\n\n~~~~~~~~~~ Checking SpotMAX output in '+ root_path +'! ~~~~~~~~~~')
         for folder_name in folder_list_spotMAX:
             print('\n\n********** Checking folder: ' + folder_name + ' **********')
             try:
@@ -172,5 +209,5 @@ def checkingcompleteness(root_paths):
         for error in errorlist:
             if error not in errorlistunique:
                 errorlistunique.append(error)
-        print("~+~+~+~+~+~+ ERRORS FOUND: ~+~+~+~+~+~+")
+        print("\n\n\n\n~+~+~+~+~+~+ ERRORS FOUND IN: ~+~+~+~+~+~+")
         print("\n".join(errorlistunique))

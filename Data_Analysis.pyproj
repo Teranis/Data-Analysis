@@ -10,7 +10,7 @@
     <OutputPath>.</OutputPath>
     <Name>Data Analysis</Name>
     <RootNamespace>Data_Analysis</RootNamespace>
-    <InterpreterId>Global|VisualStudio|main</InterpreterId>
+    <InterpreterId>Global|VisualStudio|acdc</InterpreterId>
     <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
     <TestFramework>Pytest</TestFramework>
   </PropertyGroup>
@@ -24,6 +24,8 @@
   </PropertyGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|acdc" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|main_conda" />
+    <InterpreterReference Include="Global|VisualStudio|acdc" />
     <InterpreterReference Include="Global|VisualStudio|main" />
   </ItemGroup>
   <ItemGroup>

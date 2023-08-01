@@ -23,8 +23,6 @@ def importconfigCC():
     custom_x_label = config['custom_x_label']
     if savepath is not str or savepath=="":
         savepath = CC_paths[0]
-    if exp_name_master is not str or exp_name_master=="":
-        exp_name_master = CC_exp_names[0]
     return {"CC_paths":CC_paths, "CC_exp_names":CC_exp_names, "custom_order":custom_order, "CC_norm_data":CC_norm_data, "CC_culm":CC_culm, "CC_fit":CC_fit, "savepath":savepath, "exp_name_master":exp_name_master, "plot_together":plot_together, "scatter":scatter, "custom_x_label":custom_x_label}
 
 def importconfigOD():

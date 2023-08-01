@@ -5,8 +5,7 @@ import spotMAXana
 import CellACDCana
 print('Running Data Analysis')
 
-spotMAXana.boxplot()
-
+CC.boxplot()
 ####Possible commands
 ##CC
 #CC.coultercounter()

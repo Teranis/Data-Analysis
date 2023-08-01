@@ -48,17 +48,19 @@ def import_data_CC(path):
         numbers[i] = int(number)
     #print(vols, numbers)
     for i, vol in enumerate(vols):
-        vols[i] = (4/3)*math.pi*(vol)**(3)
+        vols[i] = (4/3)*math.pi*(vol/2)**(3)
     return vols, numbers
 
-def import_all_data_CC(paths, names):
+def import_all_data_CC(paths):
     ## imports CC data from all files in a folder
     data = []
     for i, path in enumerate(paths):
         for file in os.listdir(path):
             if file.endswith('Z2'):
                 vols, numbers = import_data_CC(os.path.join(path, file))
-                data.append([[path, names[i], file], vols, numbers])
+                name = path.split("//")[-1]
+                #print(name)
+                data.append([[path, name, file], vols, numbers])
     #print(data)
     return data
 
@@ -155,7 +157,7 @@ def fit(x, y, what):
     sigma = np.sqrt(np.average((x - mean)**2, weights=y))
     C = max(y)
     print(sigma, mean, C)
-    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[C,mean,sigma])
+    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[C,mean,sigma], maxfev = 1000000000)
     #print fit Gaussian parameters
     print("\nFit parameters of " + what[2] + " from exp. " + what[1] + ": ")
     print("C = ", param_optimised[0], "+-",np.sqrt(param_covariance_matrix[0,0]))
@@ -203,7 +205,7 @@ def plotfitdata():
     exp_name_master = config["exp_name_master"]
     custom_x_label = config["custom_x_label"]
     CC_norm_data = True
-    data = import_all_data_CC(CC_paths, CC_exp_names)
+    data = import_all_data_CC(CC_paths)
     data = norm_data_cc(data, CC_norm_data)
     result_master = []
     for entry in data:
@@ -265,7 +267,7 @@ def boxplot():
     savepath = config["savepath"]
     exp_name_master = config["exp_name_master"]
     custom_x_label = config["custom_x_label"]
-    data = import_all_data_CC(CC_paths, CC_exp_names)
+    data = import_all_data_CC(CC_paths)
     for entry in data:
         entry[0] = entry[0][2].rstrip(".=#Z2")
     data = pd.DataFrame(data)
@@ -328,7 +330,7 @@ def coultercounter():
     exp_name_master = config["exp_name_master"]
     plot_together = config["plot_together"]
     scatter = config["scatter"]
-    data = import_all_data_CC(CC_paths, CC_exp_names)
+    data = import_all_data_CC(CC_paths)
     data = norm_data_cc(data, CC_norm_data)
     for entry in data:
         entry[0][2] = entry[0][2].rstrip("_.=#Z2")

@@ -238,7 +238,7 @@ def odplot():
     adderrorbars = OD_add_error_to_OD_plot
     data_master = []
     for excel_path in excel_paths:
-        print("\n\nData from "+ excel_path)
+        print("\n\nData from: "+ excel_path)
         data = import_data_OD(excel_path)
         data_master.append(data)
         print(data)
@@ -312,7 +312,7 @@ def doublingtime():
         OD_exp_fit = False
         adderrorbars = False
     for excel_path in excel_paths:
-        print("\n\nData from"+ excel_path)
+        print("\n\nData from: "+ excel_path)
         data = import_data_OD(excel_path)
         data_master.append(data)
         print(data)
@@ -402,7 +402,7 @@ def doublingtime():
         results_master.rename(columns={results_master.columns[0]: 'Culture', results_master.columns[1]: 'Hormone conc.', results_master.columns[2]: 'Doubling time', results_master.columns[3]:"Starting culture size from fit", results_master.columns[4]: "Confidence intervals 95% coeff", results_master.columns[5]:"Conf. inv. lin. offset"}, inplace=True)
         
         results_master, unique_names = sorting_dataframe(results_master)
-        exp_name = exp_name.replace(" ", "_")
+        exp_name = exp_name.replace(" ", "_").replace(",", "_")
         saveexcel(results_master, os.path.join(savepath, exp_name + '_doublingtime_fit.xlsx'))
     fig2, ax2 = plt.subplots()
     #print(data_names)
@@ -434,8 +434,8 @@ def doublingtime():
             multiplier += 1
             coordinates.append(offset)
         multiplier += 1
-    for obj in ax2.get_children():
-        print(obj, obj.get_label())
+    #for obj in ax2.get_children():
+        #print(obj, obj.get_label())
     ax2.set_title("Hormone concentration vs doubling-time")
     #print(unique_names)
     coordinates_group = [entry + (width*(unique_names[i][2]-1))/2 for i, entry in enumerate(coordinates_group)]
@@ -454,7 +454,7 @@ def doublingtime():
             ax2.errorbar(coordinates[i], result[2], yerr=result[4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeBarchart')
-    printl("Saving bar-chart to: "+os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
+    print("Saving bar-chart to: "+os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
     fig2.savefig(os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
     #print(data_master)
     #printl(name_legend_matches, pretty=True)
@@ -526,11 +526,13 @@ def doublingtime():
         ax = labelreorg(ax, find_custom_order=True)
         if use_fit == True:
             fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0] + '_fit')
-            print("Saving"+ cultureentry[0] +"fit to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
+            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_fit.png')
+            print("Saving "+ cultureentry[0] +" fit to: " + savepath_loc)
+            fig.savefig(savepath_loc)
         else:
             fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0]+ '_basicfit')
-            print("Saving"+ cultureentry[0] +"fit to: "+os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_fit.png'))
-            fig.savefig(os.path.join(os.path.dirname(excel_path), exp_name + '_' + cultureentry[0] + '_basicfit.png'))
+            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_basicfit.png')
+            print("Saving "+ cultureentry[0] +" fit to: " + savepath_loc)
+            fig.savefig(savepath_loc)
 
     plt.show()

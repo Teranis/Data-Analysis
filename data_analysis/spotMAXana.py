@@ -161,7 +161,7 @@ def pltboxplot(data, x_text=None, y_text=None, title=None, savepath=None, x_labe
         #ax.legend([bp1["boxes"][0], bp2["boxes"][0]], labels)
         #ax = labelreorg(ax, find_custom_order=is_numberlabel)
     title = title.replace(".", "_").replace(" ", "_")
-    fig.canvas.manager.set_window_title(title)
+    fig.canvas.set_window_title(title)
     save_path = os.path.join(savepath, title)
     fig.savefig(save_path)
     print('Saved box-plot to ' + save_path)
@@ -293,7 +293,7 @@ def boxplot():
     if frame2 == "End":
         print('Using data until frame: ' + str(last_edited_frame))
         frame2 = last_edited_frame
-    frame2=80 #############
+    frame2=59 #############
     single = getframes(single, frame1, frame2)
     mother = getframes(mother, frame1, frame2)
     bud = getframes(bud, frame1, frame2)
