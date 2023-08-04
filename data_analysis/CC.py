@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from scipy import asarray as exp
 import numpy as np
 import pandas as pd
-from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl, calcerrorslowerupper
+from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl, calcerrorslowerupper, getcolormap
 from configload import importconfigCC
 import copy
 from math import sqrt
@@ -95,15 +95,19 @@ def match_name(name, entry, listforculture):
     return listforculture
 
 
-def plot_CC(entry, label, fig=None, ax=None, scatter=True):
+def plot_CC(entry, label, fig=None, ax=None, scatter=True, CC_culm=False):
     #if not fig or not ax:
     #    fig, ax = plt.subplots()
     ## plots CC data
+    y = entry[3].copy()
+    if CC_culm == True:
+        for i, _ in enumerate(y[1:], start=1):
+            y[i] = y[i] + y[i-1]
     if scatter == True:
-        ax.scatter(entry[2], entry[3], color="blue", alpha=0.7, label=label, s=4)
+        ax.scatter(entry[2], y, color="blue", alpha=0.5, label=label, s=4)
     else:
         labels = [label]*len(entry[2])
-        ax.bar(entry[2], entry[3], color="blue", alpha=0.7, width=calcbarsize(entry), label=labels)
+        ax.bar(entry[2], y, color="blue", alpha=0.5, width=calcbarsize(entry), label=labels)
     return fig, ax
 
 def plot_together_CC(data, culture_name, fig=None, ax=None):
@@ -136,7 +140,11 @@ def plot_together_CC_fit(data, CC_culm, result_master_fit, culture_name, fig=Non
     return fig, ax
 
 def gaus(X, C, X_mean, sigma):
-    return C*exp(-(X-X_mean)**2/(2*sigma**2))
+    return C*np.exp(-(X-X_mean)**2/(2*sigma**2))
+
+#def gauscum(X, C, X_mean, sigma):
+#    return 0.5 * (1 + np.sign(X - X_mean) * np.sqrt(1 - np.exp(-2 * ((X - X_mean) / sigma)**2)))
+
 
 def gauslist(xlist, C, X_mean, sigma):
     ylist = []
@@ -152,13 +160,20 @@ def gauslistcum(xlist, C, X_mean, sigma):
         ylist[i] = ylist[i] + ylist[i-1]
     return ylist
 
-def fit(x, y, what):
-    mean = np.average(x, weights=y)               
+def fit(x, y, what, CC_culm):
+    mean = np.average(x, weights=y)
     sigma = np.sqrt(np.average((x - mean)**2, weights=y))
-    C = max(y)
-    print(sigma, mean, C)
-    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[C,mean,sigma], maxfev = 1000000000)
-    #print fit Gaussian parameters
+    C = np.max(y)
+    #print(C,mean,sigma)
+    #plt.scatter(x, y, color='blue', marker='o')
+    #x_function = np.linspace(min(x), max(x), 100)
+    #y_function = gaus(x_function, C,mean,sigma)
+    #plt.plot(x_function, y_function)
+    #plt.show()
+    #if CC_culm != True:
+    param_optimised, param_covariance_matrix = curve_fit(gaus,x,y,p0=[C,mean,sigma])
+    #else:
+    #    param_optimised, param_covariance_matrix = curve_fit(gauscum,x,y,p0=[C,mean,sigma])
     print("\nFit parameters of " + what[2] + " from exp. " + what[1] + ": ")
     print("C = ", param_optimised[0], "+-",np.sqrt(param_covariance_matrix[0,0]))
     print("X_mean =", param_optimised[1], "+-",np.sqrt(param_covariance_matrix[1,1]))
@@ -210,7 +225,7 @@ def plotfitdata():
     result_master = []
     for entry in data:
         entry[0][2] = entry[0][2].rstrip("_.=#Z2")
-        param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
+        param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0], CC_culm=False)
         result = [entry[0][2]]
         for i in range(3):
             result.append([param_optimised[i], param_covariance_matrix[i,i]])
@@ -232,28 +247,28 @@ def plotfitdata():
                     is_numberlabel = False
         ax.scatter(x=[sublist[1] for sublist in listforculture], y=[sublist[3][0] for sublist in listforculture])
         ax.grid(True)
-        ax.set_title(name+ " Fit results")
-        ax.set_ylabel('Volume (fL)')
+        ax.set_title(name+ " Fit results",fontweight='bold',fontsize=14)
+        ax.set_ylabel('Volume (fL)',fontsize=13)
         if is_numberlabel == True and custom_x_label=="":
-            ax.set_xlabel("Hormone concentration (nM)")
+            ax.set_xlabel("Hormone concentration (nM)",fontsize=13)
         else:
-            ax.set_xlabel(custom_x_label)
+            ax.set_xlabel(custom_x_label,fontsize=13)
         fig.canvas.manager.set_window_title(exp_name_master + '_CellSize_' + name)
-        save_path = os.path.join(savepath, exp_name_master) + '_CellSize_' + name + '.png'
+        save_path = os.path.join(savepath, exp_name_master) + '_CellSize_' + name + '.pdf'
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
         ax2.scatter(x=[sublist[1] for sublist in listforculture], y=[sublist[3][0] for sublist in listforculture], label=name)
     ax2.grid(True)
-    ax2.set_title("Fit")
-    ax2.set_ylabel('Volume (fL)')
+    ax2.set_title("Fit",fontweight='bold',fontsize=14)
+    ax2.set_ylabel('Volume (fL)',fontsize=13)
     if is_numberlabel == True and custom_x_label=="":
-        ax2.set_xlabel("Hormone concentration (nM)")
+        ax2.set_xlabel("Hormone concentration (nM)",fontsize=13)
     else:
-        ax2.set_xlabel(custom_x_label)
+        ax2.set_xlabel(custom_x_label,fontsize=13)
     ax2.legend()
     name = name.replace(" ", "_").replace(".", "_")
     fig2.canvas.manager.set_window_title(exp_name_master + '_CellSize')
-    save_path = os.path.join(savepath, exp_name_master) + '_CellSize.png'
+    save_path = os.path.join(savepath, exp_name_master) + '_CellSize.pdf'
     save_path = save_path.replace(" ", "_")
     fig2.savefig(save_path)
     print('Saved plot to ' + save_path)
@@ -301,20 +316,25 @@ def boxplot():
                 is_numberlabel = False
             #print(type(label))
             #print(is_numberlabel)
-        if is_numberlabel == True:
-            ax.boxplot([sublist[2] for sublist in cult_list], positions=[sublist[1] for sublist in cult_list], showfliers=False)
-        else:
-            ax.boxplot([sublist[2] for sublist in cult_list], showfliers=False, labels=[sublist[1] for sublist in cult_list])
+
+        cmap = getcolormap(len(cult_list.copy()))
+        boxpropsl = [{'facecolor': c, 'color': 'black', 'linewidth': 2} for c in cmap]
+        linestyle = {'color': 'black', 'linewidth': 1.7}
+        for i, sublist in enumerate(cult_list):
+            if is_numberlabel == True:
+                ax.boxplot([sublist[2]], positions=[sublist[1]], showfliers=False, boxprops=boxpropsl[i], patch_artist=True, widths=1.2, whiskerprops=linestyle, medianprops=linestyle, capprops=linestyle)
+            else:
+                ax.boxplot(sublist[2], showfliers=False, labels=sublist[1], boxprops=boxpropsl[i], patch_artist=True, widths=1.2, whiskerprops=linestyle, medianprops=linestyle, capprops=linestyle)
         ax.grid(True)
-        ax.set_ylabel('Volume (fL)')
+        ax.set_ylabel('Volume (fL)',fontsize=13)
         if is_numberlabel == True and custom_x_label=="":
-            ax.set_xlabel("Hormone concentration (nM)")
+            ax.set_xlabel("Hormone concentration (nM)",fontsize=13)
         else:
-            ax.set_xlabel(custom_x_label)
-        ax.set_title(name+ " Cell Size")
+            ax.set_xlabel(custom_x_label,fontsize=13)
+        ax.set_title(name+ " Cell Size",fontweight='bold',fontsize=14)
         name = name.replace(" ", "_").replace(".", "_")
         fig.canvas.manager.set_window_title(exp_name_master + '_CellSize_Boxplot_' + name)
-        save_path = os.path.join(savepath, exp_name_master + '_CellSize_Boxplot_' + name + '.png')
+        save_path = os.path.join(savepath, exp_name_master + '_CellSize_Boxplot_' + name + '.pdf')
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
     plt.show()
@@ -339,10 +359,11 @@ def coultercounter():
     data_dataframe['Name'] = data_dataframe['Name'].apply(lambda x: x[2])
     data_dataframe, unique_entries, precise_unique_entries = sorting_dataframe(data_dataframe, split_name_label=True, create_beaty=True, precise_unique=True)
     #printl(data_dataframe, pdnomax=True)
+    #CC_fit = True
     if CC_fit == True:
         result_master = []
         for entry in data:
-            param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0])
+            param_optimised, param_covariance_matrix = fit(entry[1], entry[2], entry[0], CC_culm)
             result = [entry[0][2]]
             for i in range(3):
                 result.append([param_optimised[i], param_covariance_matrix[i,i]])
@@ -351,6 +372,8 @@ def coultercounter():
         result_master = pd.DataFrame(result_master)
         result_master.columns = ['name', 'C', 'X_mean', 'sigma']
         result_master, unique_entries, precise_unique_entries = sorting_dataframe(result_master, split_name_label=True, create_beaty=True, precise_unique=True)
+    else:
+        result_master = data_dataframe #maybe need to look at this again
     #printl(precise_unique_entries)
     for name, start, leng in unique_entries if plot_together==True else precise_unique_entries:
         endpoint = start + leng
@@ -363,7 +386,7 @@ def coultercounter():
             if plot_together != True:
                 label = ""
             #printl(label)
-            fig, ax = plot_CC(listforculturedata[i], label, fig, ax, scatter)
+            fig, ax = plot_CC(listforculturedata[i], label, fig, ax, scatter, CC_culm)
         if CC_fit == True:
             precise_list = []
             mean_fitres = []
@@ -402,14 +425,14 @@ def coultercounter():
                 mean_fitres.append((namep, bentry, bunc))
             #printl(listforculture)
             #printl(mean_fitres)
-        for i, entry in enumerate(mean_fitres):
-            indx = i+ start
-            #if plot
-            if plot_together==True:
-                label = entry[0][1]
-            else:
-                label = ""
-            ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, entry[1], entry[2], label)
+            for i, entry in enumerate(mean_fitres):
+                indx = i+ start
+                #if plot
+                if plot_together==True:
+                    label = entry[0][1]
+                else:
+                    label = ""
+                ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, entry[1], entry[2], label)
 #printl(unique_entries, pretty=True)
 #printl(precise_unique_entries, pretty=True)
 #printl(result_master, pdnomax=True)
@@ -419,16 +442,16 @@ def coultercounter():
         else:
             ax.legend()
             ax = labelreorg(ax)
-        ax.set_title(name)
-        ax.set_xlabel('Volume (fL)')
+        ax.set_title(name,fontweight='bold',fontsize=14)
+        ax.set_xlabel('Volume (fL)',fontsize=13)
         if CC_norm_data == True:
-            ax.set_ylabel('Fraction of cells')
+            ax.set_ylabel('Fraction of cells',fontsize=13)
         else:
-            ax.set_ylabel('Number of cells')
+            ax.set_ylabel('Number of cells',fontsize=13)
         ax.grid(True)
         name = name.replace(" ", "_").replace(".", "_")
         fig.canvas.manager.set_window_title(exp_name_master + '_' + name)
-        save_path = os.path.join(savepath, exp_name_master) + '_' + name + '.png'
+        save_path = os.path.join(savepath, exp_name_master) + '_' + name + '.pdf'
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
     plt.show()

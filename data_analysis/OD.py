@@ -260,19 +260,19 @@ def odplot():
             fig, ax = plt.subplots()
             for j in range(i*no_perculture, (i+1)*no_perculture, 1):
                 ax.plot(times, data.iloc[j], marker='o', label=legend[j])
-            ax.set_title(culturename)
-            ax.set_xlabel('Time (h)')
+            ax.set_title(culturename, fontsize=14, fontweight='bold')
+            ax.set_xlabel('Time (h)', fontsize=13)
             if OD_norm_data == True:
-                ax.set_ylabel('Normalized Optical Density')
+                ax.set_ylabel('Normalized Optical Density', fontsize=13)
             else:
-                ax.set_ylabel('Optical Density')
+                ax.set_ylabel('Optical Density', fontsize=13)
             ax.set_yscale('log')
             ax.legend()
             ax.grid(True)
             exp_name = exp_name.replace(".", "_").replace(" ", "_")
             fig.canvas.manager.set_window_title(str(exp_name) + '_' + culturename)
             #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-            plt.savefig(os.path.join(os.path.dirname(excel_path), str(exp_name) + '_' + culturename + '.png'))
+            plt.savefig(os.path.join(os.path.dirname(excel_path), str(exp_name) + '_' + culturename + '.pdf'), format='pdf')
 
 
     if len(data_master) > 1:
@@ -288,19 +288,19 @@ def odplot():
                 #print(data)
                 #print(label)
                 ax.plot(data_times[listindex], data.iloc[entryindex], marker='o', label=label)
-            ax.set_title(data_names_legends[listindex][entryindex].replace("$", " "))
-            ax.set_xlabel('Time (h)')
+            ax.set_title(data_names_legends[listindex][entryindex].replace("$", " "), fontsize=14, fontweight='bold')
+            ax.set_xlabel('Time (h)', fontsize=13)
             if OD_norm_data == True:
-                ax.set_ylabel('Normalized Optical Density')
+                ax.set_ylabel('Normalized Optical Density', fontsize=13)
             else:
-                ax.set_ylabel('Optical Density')
+                ax.set_ylabel('Optical Density', fontsize=13)
             ax.set_yscale('log')
             ax.legend()
             ax.grid(True)
             savename = data_names_legends[listindex][entryindex].replace("$", "_").replace(".", "_").replace(" ", "_")
             fig.canvas.manager.set_window_title(savename + '_all_runs')
             #print(os.path.join(os.path.dirname(excel_path), exp_name + '_' + culturename))
-            plt.savefig(os.path.join(os.path.dirname(excel_path),savename + '_all_runs.png'))
+            plt.savefig(os.path.join(os.path.dirname(excel_path),savename + '_all_runs.pdf'), format='pdf')
     plt.show()
 
 def doublingtime():
@@ -436,13 +436,13 @@ def doublingtime():
         multiplier += 1
     #for obj in ax2.get_children():
         #print(obj, obj.get_label())
-    ax2.set_title("Hormone concentration vs doubling-time")
+    ax2.set_title("Hormone concentration vs doubling-time", fontsize=14, fontweight='bold')
     #print(unique_names)
     coordinates_group = [entry + (width*(unique_names[i][2]-1))/2 for i, entry in enumerate(coordinates_group)]
     ax2.set_xticks(coordinates_group)
     ax2.set_xticklabels([sublist[0] for sublist in unique_names])
-    ax2.set_xlabel('Culture')
-    ax2.set_ylabel('Doubling time (h)')
+    ax2.set_xlabel('Culture', fontsize=13)
+    ax2.set_ylabel('Doubling time (h)', fontsize=13)
     ax2.legend()
     #printl(ax2.get_legend_handles_labels())
     ax2 = labelreorg(ax2, find_custom_order=True)
@@ -454,8 +454,9 @@ def doublingtime():
             ax2.errorbar(coordinates[i], result[2], yerr=result[4], capsize=4, color='black', ls="none")
     ax2.grid(True)
     fig2.canvas.manager.set_window_title(exp_name +  '_DoublingTimeBarchart')
-    print("Saving bar-chart to: "+os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
-    fig2.savefig(os.path.join(savepath, exp_name + '_DoublingTimeBarchart.png'))
+    savepathbar = os.path.join(savepath, exp_name + '_DoublingTimeBarchart.pdf')
+    print("Saving bar-chart to: "+savepathbar)
+    fig2.savefig(savepathbar)
     #print(data_master)
     #printl(name_legend_matches, pretty=True)
     ###plotting fit
@@ -514,25 +515,25 @@ def doublingtime():
             if adderrorbars == True:
                 ax.fill_between(times_fit, y_upper, y_lower, label=legend_entry, alpha=0.3)
 
-        ax.set_title(cultureentry[0])
-        ax.set_xlabel('Time (h)')
+        ax.set_title(cultureentry[0], fontsize=14, fontweight='bold')
+        ax.set_xlabel('Time (h)', fontsize=13)
         if OD_norm_data == True:
-            ax.set_ylabel('Normalized Optical Density')
+            ax.set_ylabel('Normalized Optical Density', fontsize=13)
         else:
-            ax.set_ylabel('Optical Density')
+            ax.set_ylabel('Optical Density', fontsize=13)
         ax.set_yscale('log')
         ax.grid(True)
         ax.legend()
         ax = labelreorg(ax, find_custom_order=True)
         if use_fit == True:
             fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0] + '_fit')
-            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_fit.png')
+            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_fit.pdf')
             print("Saving "+ cultureentry[0] +" fit to: " + savepath_loc)
-            fig.savefig(savepath_loc)
+            fig.savefig(savepath_loc, format='pdf')
         else:
             fig.canvas.manager.set_window_title(exp_name + '_' + cultureentry[0]+ '_basicfit')
-            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_basicfit.png')
+            savepath_loc = os.path.join(savepath, exp_name + '_' + cultureentry[0] + '_basicfit.pdf')
             print("Saving "+ cultureentry[0] +" fit to: " + savepath_loc)
-            fig.savefig(savepath_loc)
+            fig.savefig(savepath_loc, format='pdf')
 
     plt.show()

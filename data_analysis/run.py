@@ -3,9 +3,11 @@ import OD
 import CC
 import spotMAXana
 import CellACDCana
+import matplotlib
 print('Running Data Analysis')
-
-CC.boxplot()
+matplotlib.use('TkAgg')
+matplotlib.rc('axes', axisbelow=True)
+OD.odplot()
 ####Possible commands
 ##CC
 #CC.coultercounter()

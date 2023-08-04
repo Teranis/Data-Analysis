@@ -166,6 +166,8 @@ def getcolormap(howmany):
     else:
         color_map = mcolors.get_cmap()
         colors = [color_map(i) for i in np.linspace(0, 1, howmany)]
+#    color_map = mcolors.get_cmap('viridis')
+#    colors = [color_map(i) for i in np.linspace(0, 1, howmany)]
     return colors
 
 def calcerrorslowerupper(func, x, *args, cum=False, step=1):
