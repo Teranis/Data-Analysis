@@ -107,7 +107,7 @@ def plot_CC(entry, label, fig=None, ax=None, scatter=True, CC_culm=False):
         ax.scatter(entry[2], y, color="blue", alpha=0.5, label=label, s=4)
     else:
         labels = [label]*len(entry[2])
-        ax.bar(entry[2], y, color="blue", alpha=0.5, width=calcbarsize(entry), label=labels)
+        ax.bar(entry[2], y, color="blue", alpha=0.5, width=calcbarsize(entry), label=labels, edgecolor='none')
     return fig, ax
 
 def plot_together_CC(data, culture_name, fig=None, ax=None):

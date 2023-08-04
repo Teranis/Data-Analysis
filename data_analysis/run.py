@@ -7,7 +7,7 @@ import matplotlib
 print('Running Data Analysis')
 matplotlib.use('TkAgg')
 matplotlib.rc('axes', axisbelow=True)
-OD.odplot()
+CC.coultercounter()
 ####Possible commands
 ##CC
 #CC.coultercounter()
