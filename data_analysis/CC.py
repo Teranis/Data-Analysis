@@ -10,6 +10,7 @@ from core import labelreorg, getcolormap, saveexcel, sorting_dataframe, printl, 
 from configload import importconfigCC
 import copy
 from math import sqrt
+
 ### small
 def import_data_CC(path):
     ## imports data from a single file
@@ -375,6 +376,7 @@ def coultercounter():
     else:
         result_master = data_dataframe #maybe need to look at this again
     #printl(precise_unique_entries)
+    results_mean_master = []
     for name, start, leng in unique_entries if plot_together==True else precise_unique_entries:
         endpoint = start + leng
         listforculture = result_master.iloc[start:endpoint,:].values.tolist()
@@ -433,10 +435,11 @@ def coultercounter():
                 else:
                     label = ""
                 ax = pltfit(ax, data_dataframe['Size'][indx], CC_culm, entry[1], entry[2], label)
+                results_mean_master += mean_fitres
 #printl(unique_entries, pretty=True)
 #printl(precise_unique_entries, pretty=True)
 #printl(result_master, pdnomax=True)
-        
+
         if plot_together != True:
             name = str(name[0]) + " " + str(name[1])
         else:
@@ -454,4 +457,9 @@ def coultercounter():
         save_path = os.path.join(savepath, exp_name_master) + '_' + name + '.pdf'
         fig.savefig(save_path)
         print('Saved plot to ' + save_path)
+    res_mean_excel = []
+    for namep, bentry, bunc in results_mean_master:
+        res_mean_excel.append((namep[1], str(r'\num{' + str(round(bentry[0],2)) + r'\pm ' + str(round(bunc[0],2)) +r'}'),str(r'\SI{' + str(round(bentry[1],2)) + r'\pm ' + str(round(bunc[1],2)) +r'}{\femto \litre}'),str(r'\SI{' + str(round(bentry[2],2)) + r'\pm ' + str(round(bunc[2],2)) +r'}{\femto \litre}')))
+    res_mean_exceldf = pd.DataFrame(res_mean_excel, columns=['name', 'C', 'X_mean', 'sig'])
+    saveexcel(res_mean_exceldf, os.path.join(savepath, exp_name_master) + '_fitmean.xlsx')
     plt.show()
